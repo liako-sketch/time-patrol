@@ -7,36 +7,7 @@
 <link rel="icon" href="data:,">
 <title>타임 패트롤: 서임권 투쟁</title>
 <script>
-/* DEBUG-BC (임시 진단): 아이폰에서 최종 제출 때 새로고침되는 지점을 찾기 위한 기록. 이 탭의 sessionStorage 에만 남고 어디로도 전송되지 않음. 원인을 찾으면 지움 */
-(function () {
-  var K = 'tp_bc', arr = [], t0 = performance.now();
-  try {
-    var prev = sessionStorage.getItem(K);
-    if (prev) {
-      sessionStorage.removeItem(K);
-      var lines = JSON.parse(prev);
-      document.addEventListener('DOMContentLoaded', function () {
-        var d = document.createElement('div');
-        d.style.cssText = 'position:fixed;left:4px;top:4px;z-index:99999;max-width:94vw;padding:6px 8px;background:rgba(0,0,0,.85);color:#ffd54a;font:11px/1.35 monospace;white-space:pre-wrap;border-radius:6px';
-        d.textContent = '[이전 실행 기록 - 화면을 누르면 닫힘]' + String.fromCharCode(10) + lines.join(String.fromCharCode(10));
-        d.addEventListener('click', function () { d.remove(); });
-        document.body.appendChild(d);
-      });
-    }
-  } catch (e) {}
-  var LITE = ((location.search.match(/[?&]lite=([^&]*)/) || [])[1] || '');
-  window.LITE = LITE; window.LT = function (k) { return LITE === 'all' || LITE.split(',').indexOf(k) >= 0; };   // ?lite=svg,glow,bob,hum,fade,dots,rot 또는 ?lite=all : 분석 화면의 해당 부분만 끄고 시험 (원인 찾기용)
-  window.BC = function (s) {
-    try { arr.push(Math.round(performance.now() - t0) + ' ' + s); if (arr.length > 16) arr.shift(); sessionStorage.setItem(K, JSON.stringify(arr)); } catch (e) {}
-  };
-  addEventListener('pagehide', function () { window.BC('pagehide'); });
-  document.addEventListener('visibilitychange', function () { window.BC('vis:' + document.visibilityState); });
-  document.addEventListener('focusin', function (e) { window.BC('focusin:' + (e.target.id || e.target.tagName)); });
-  document.addEventListener('focusout', function (e) { window.BC('focusout:' + (e.target.id || e.target.tagName)); });
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { window.BC('vv:' + Math.round(window.visualViewport.height)); });
-  window.BC('load');
-  addEventListener('error', function (e) { window.BC('error:' + String(e.message).slice(0, 60)); });
-})();
+window.LT = function () { return false; }; window.BC = function () {};   // 진단 기능은 껐음 (호출부는 그대로 둠)
 </script>
 <style>
 @font-face {
@@ -3761,7 +3732,7 @@ var A11y = (function () {
 
 // 아이폰 키보드: 입력칸을 누르면 브라우저(iOS)가 화면을 필요 이상으로 밀어 올림(이름 입력·서술형 모두). 그 밀림을 취소하고, 입력칸이 키보드·입력 도구 줄에 가려지는 만큼만 올림
 (function () {
-  if (!IS_IPHONE || !window.visualViewport || /[?&]nokb=1/.test(location.search)) return;   // ?nokb=1 : 키보드 화면 보정을 끄고 시험
+  if (!IS_IPHONE || !window.visualViewport || !/[?&]kb=1/.test(location.search)) return;   // 키보드 화면 보정은 기본 꺼짐 (이 보정이 있으면 아이폰에서 가끔 새로고침됨). ?kb=1 로 켜서 시험
   var vv = window.visualViewport, box = document.getElementById('flow-viewport'), curY = 0, TOOLBAR = 56, MARGIN = 16;
   function setY(y) { curY = y; box.style.transform = y ? 'translateY(' + y + 'px)' : ''; }
   function assist() {
@@ -3785,7 +3756,7 @@ var A11y = (function () {
 (function () {
   function refitAll() { try { Intro.fit(); Board.fit(); } catch (_) {} }
   ['load', 'pageshow', 'orientationchange'].forEach(function (ev) { addEventListener(ev, refitAll); });
-  if (window.visualViewport && !/[?&]nokb=1/.test(location.search)) window.visualViewport.addEventListener('resize', refitAll);
+  if (window.visualViewport && /[?&]kb=1/.test(location.search)) window.visualViewport.addEventListener('resize', refitAll);
   [150, 500, 1200, 2500].forEach(function (ms) { setTimeout(refitAll, ms); });
   document.addEventListener('pointerdown', function once() { document.removeEventListener('pointerdown', once, true); setTimeout(refitAll, 50); }, true);
 })();
