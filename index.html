@@ -247,7 +247,7 @@ button { font-family: var(--font-title); font-weight: 600; }
   box-shadow: 0 4px 12px rgba(0,0,0,.45), 0 0 14px rgba(80, 225, 235, .28), inset 0 0 18px rgba(80, 225, 235, .12);
   transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
   display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; text-align: center;
-  will-change: left, top, transform;
+  will-change: transform; contain: layout style;
 }
 /* 모서리 장식선 (가는 ㄱ자 네 개) */
 .board-card::after { content: ''; position: absolute; inset: .22em; pointer-events: none; border-radius: 9px;
@@ -277,7 +277,7 @@ button { font-family: var(--font-title); font-weight: 600; }
 .board-card.board-locked { cursor: pointer; }
 .board-card.board-zoom { transform: translateY(-120px) scale(var(--board-zs, 1.9)); z-index: 50; box-shadow: 0 18px 40px rgba(0,0,0,.6); }
 .board-card.board-dim { filter: brightness(.55); }
-.board-card.board-drag { cursor: grabbing; z-index: 60; transition: filter .18s, box-shadow .18s; box-shadow: 0 26px 46px rgba(0,0,0,.6), 0 0 0 2px rgba(120,255,240,.25); }
+.board-card.board-drag { cursor: grabbing; z-index: 60; transition: filter .18s, box-shadow .18s; box-shadow: 0 14px 26px rgba(0,0,0,.55), 0 0 0 2px rgba(120,255,240,.25); }
 .board-card.board-anim { transition: left .2s ease-out, top .2s ease-out, width .2s ease-out, height .2s ease-out, transform .2s, filter .18s; }
 .board-card.board-return { z-index: 55; transition: left .35s cubic-bezier(.22, .61, .36, 1), top .35s cubic-bezier(.22, .61, .36, 1), width .35s cubic-bezier(.22, .61, .36, 1), height .35s cubic-bezier(.22, .61, .36, 1), font-size .35s cubic-bezier(.22, .61, .36, 1), filter .18s; }
 .board-card.board-snap { transition: left .12s ease-out, top .12s ease-out, width .12s ease-out, height .12s ease-out, filter .18s; animation: board-pop .2s ease-out; }
@@ -670,7 +670,7 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 .board-lnone { flex: none; font-family: var(--font-body); font-weight: 400; font-size: 22px; color: rgba(200, 235, 240, .45); }
 #board-lbtns { display: flex; justify-content: flex-start; margin-top: 20px; }
 /* ===== 접근성 버튼 + 설정 팝업 (스케일 무대 밖에 두되, right·bottom 은 스크립트가 무대 안쪽 오른쪽 아래 모서리로 맞춤) ===== */
-#a11y-btn { position: fixed; right: 24px; bottom: 24px; z-index: 900; width: 64px; height: 64px; box-sizing: border-box; margin: 0; padding: 4px 0 0; cursor: pointer;
+#a11y-btn { position: absolute; right: 24px; bottom: 24px; z-index: 40; width: 64px; height: 64px; box-sizing: border-box; margin: 0; padding: 4px 0 0; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   font-family: var(--font-title); font-weight: 600; font-size: 13px; line-height: 1; color: #8ff3fa;
   background: rgb(10, 25, 45); border: 2px solid #5fd4e0; border-radius: 16px; box-shadow: 0 0 14px rgba(95, 212, 224, .3); }
@@ -701,6 +701,15 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 #a11y-sw2[aria-checked="true"] #a11y-track2::after { left: 31px; background: #8ff3fa; }
 #a11y-sw2:focus-visible #a11y-track2 { box-shadow: 0 0 0 3px rgba(143, 243, 250, .5); }
 #a11y-desc2 { margin: 8px 0 0; font-size: 18px; line-height: 1.45; color: rgba(200, 235, 240, .8); word-break: keep-all; }
+#a11y-row3 { margin-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+#a11y-label3 { font-family: var(--font-title); font-weight: 600; font-size: 22px; color: #eefcff; }
+#a11y-sw3 { flex: none; display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--font-title); font-weight: 600; font-size: 18px; color: #d8f7fa; }
+#a11y-track3 { position: relative; width: 60px; height: 32px; box-sizing: border-box; border-radius: 16px; border: 2px solid #5fd4e0; background: rgb(10, 25, 45); }
+#a11y-track3::after { content: ''; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #8aa0aa; transition: left .15s ease, background .15s ease; }
+#a11y-sw3[aria-checked="true"] #a11y-track3 { background: rgb(18, 60, 80); }
+#a11y-sw3[aria-checked="true"] #a11y-track3::after { left: 31px; background: #8ff3fa; }
+#a11y-sw3:focus-visible #a11y-track3 { box-shadow: 0 0 0 3px rgba(143, 243, 250, .5); }
+#a11y-desc3 { margin: 8px 0 0; font-size: 18px; line-height: 1.45; color: rgba(200, 235, 240, .8); word-break: keep-all; }
 /* 흔들림·움직임 줄이기 (html.calm-mode): 화면 흔들림은 자바스크립트가 건너뛰고, 아래는 CSS 움직임을 멈춤 */
 html.calm-mode .board-piece { animation: none; }
 html.calm-mode #board-sub.board-open .board-glowtxt { animation: none; }
@@ -906,6 +915,8 @@ html.colorblind-mode #board-czOk .board-badge::before { content: '\25CB  '; }
   <p id="a11y-desc">붉은색과 녹색이 헷갈리는 친구를 위해 모양과 색을 바꿔 보여 줘요.</p>
   <div id="a11y-row2"><span id="a11y-label2">흔들림·움직임 줄이기</span><button id="a11y-sw2" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label2"><span id="a11y-track2"></span><span id="a11y-state2">꺼짐</span></button></div>
   <p id="a11y-desc2">화면 흔들림, 배경 조각이 둥둥 떠다니는 움직임, 글자가 반짝이는 효과, 분석 화면에서 원이 작아졌다 커지며 파티클이 터지는 효과를 멈춰요.</p>
+  <div id="a11y-row3"><span id="a11y-label3">소리 끄기 (음소거)</span><button id="a11y-sw3" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label3"><span id="a11y-track3"></span><span id="a11y-state3">꺼짐</span></button></div>
+  <p id="a11y-desc3">배경 울림, 효과음, 토리가 말할 때 나는 소리를 모두 꺼요. 화면과 글자는 그대로예요.</p>
   <p id="a11y-note">이 설정들은 이 기기 브라우저에만 저장되며 서버로 전송되지 않습니다.</p>
   <div id="a11y-btns"><button id="a11y-reset" type="button">설정 초기화</button><button id="a11y-close" type="button">닫기</button></div>
 </div></div>
@@ -1273,6 +1284,7 @@ var SFX = {
     } catch (_) {}
   },
 
+  muted: false, mute: null,   // 소리 끄기 상태(접근성 설정)
   ctx: null, gain: null, comp: null, noiseBuf: null, voices: 0, gesture: false,
 
   // 첫 사용자 입력이 있을 때 AudioContext 를 만들고 resume (그 전에는 소리를 시도하지 않음)
@@ -1292,12 +1304,13 @@ var SFX = {
         curve[k] = ax <= knee ? x : (x < 0 ? -1 : 1) * (knee + room * Math.tanh((ax - knee) / room));
       }
       safe.curve = curve; safe.oversample = '2x';
-      comp.connect(post); post.connect(safe); safe.connect(ctx.destination);
+      var mute = ctx.createGain(); mute.gain.value = SFX.muted ? 0 : 1;   // 접근성 '소리 끄기': 모든 소리가 지나가는 맨 마지막 출구
+      comp.connect(post); post.connect(safe); safe.connect(mute); mute.connect(ctx.destination);
       var g = ctx.createGain(); g.gain.value = AUDIO.master * AUDIO.level.others; g.connect(comp);
       var tg = ctx.createGain(); tg.gain.value = AUDIO.master * AUDIO.level.tick; tg.connect(comp);   // 토리 목소리 전용 출력 (같은 리미터를 거침)
       var len = ctx.sampleRate, buf = ctx.createBuffer(1, len, ctx.sampleRate), ch = buf.getChannelData(0);
       for (var i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
-      SFX.ctx = ctx; SFX.gain = g; SFX.tickGain = tg; SFX.comp = comp; SFX.post = post; SFX.safe = safe; SFX.noiseBuf = buf; SFX.gesture = true;
+      SFX.ctx = ctx; SFX.gain = g; SFX.tickGain = tg; SFX.comp = comp; SFX.post = post; SFX.safe = safe; SFX.mute = mute; SFX.noiseBuf = buf; SFX.gesture = true;
       if (ctx.resume) ctx.resume().catch(function () {});
     } catch (_) { SFX.ctx = null; }
   },
@@ -2018,10 +2031,12 @@ var Board = (function () {
   shuffleHand();
 
   function setBox(c, x, y, w, h) {
+    var st = c.el.style, ow = c.w, oh = c.h, ox = c.x, oy = c.y;
     c.x = x; c.y = y; c.w = w; c.h = h;
-    var st = c.el.style;
-    st.left = x + 'px'; st.top = y + 'px'; st.width = w + 'px'; st.height = h + 'px';
-    var f = w * 0.09; st.fontSize = f + 'px';
+    if (x !== ox || !st.left) st.left = x + 'px';
+    if (y !== oy || !st.top) st.top = y + 'px';
+    if (w !== ow || !st.width) { st.width = w + 'px'; st.fontSize = (w * 0.09) + 'px'; }   // 크기가 같으면 글자 크기도 다시 안 씀 (다시 계산·배치 줄임)
+    if (h !== oh || !st.height) st.height = h + 'px';
   }
   function restBox(c) {
     if (revLayout && c.revIdx != null) return { x: revLayout.x(c.revIdx) - scrollPos, y: revLayout.y, w: revLayout.w, h: revLayout.h };   // 톺아본 뒤 6장 한 줄 배치
@@ -2107,7 +2122,7 @@ var Board = (function () {
   function slotCY() { return L.slotTop + L.slotH / 2; }
 
   // 끌기 상태
-  var drag = { card: null, active: false, pid: null, sx: 0, sy: 0, gx: 0, gy: 0, px: 0, py: 0, lx: 0, tilt: 0, near: -1, bgScroll: false, bgStartScroll: 0, tap: null, tapMoved: false };
+  var drag = { raf: 0, card: null, active: false, pid: null, sx: 0, sy: 0, gx: 0, gy: 0, px: 0, py: 0, lx: 0, tilt: 0, near: -1, bgScroll: false, bgStartScroll: 0, tap: null, tapMoved: false };
   var zoomed = null;
   function unzoom(quiet) {
     var was = zoomed;
@@ -2941,7 +2956,7 @@ var Board = (function () {
       cards.forEach(function (o) { o.el.classList.remove('board-dim'); });
     }
     drag.tilt = Math.max(-9, Math.min(9, drag.tilt + (p.x - drag.lx) * 0.5)); drag.lx = p.x;
-    applyDrag();
+    if (!drag.raf) drag.raf = requestAnimationFrame(function () { drag.raf = 0; if (drag.card && drag.active) applyDrag(); });   // 움직임 이벤트가 프레임보다 많이 와도 화면 계산은 프레임당 한 번
   }
 
   function ripple(i) {
@@ -2958,6 +2973,7 @@ var Board = (function () {
     if (e.pointerId !== drag.pid) return;
     var c = drag.card, was = drag.active, tap = drag.tap, moved = drag.tapMoved;
     drag.tap = null; drag.tapMoved = false;
+    if (drag.raf) { cancelAnimationFrame(drag.raf); drag.raf = 0; }
     drag.pid = null; drag.active = false; drag.bgScroll = false;
     try { stage.releasePointerCapture(e.pointerId); } catch (_) {}
     slots.forEach(function (s) { s.classList.remove('board-ready'); });
@@ -3258,7 +3274,8 @@ var Board = (function () {
       speed += (tgt - speed) * (1 - Math.exp(-dt * 3));
       angle = (angle + speed * dt) % 360;
       var tr = 'rotate(' + (angle + glitchOff).toFixed(2) + ' 118 118)';
-      for (var i = 0; i < arcs.length; i++) arcs[i].setAttribute('transform', tr);
+      var n = ring.classList.contains('board-is-glitch') ? arcs.length : 1;   // 글리치 때만 색 분리용 두 장도 같이 돌림 (평소엔 안 보이므로 다시 그리지 않음)
+      for (var i = 0; i < n; i++) arcs[i].setAttribute('transform', tr);
     }
 
     // 링 글리치: 두 색이 ±dx 로 갈라지고 호가 튐. ms 뒤 복귀
@@ -3433,6 +3450,7 @@ var Flow = (function () {
     introScene.style.display = name === 'intro' ? 'block' : 'none';
     boardScene.style.display = name === 'board' ? 'block' : 'none';
     FS.mount(name === 'intro' ? introStage : Board.stage, 'bottom');
+    A11y.mount(name === 'intro' ? introStage : Board.stage);
   }
 
   function enterBoard() {
@@ -3520,27 +3538,29 @@ var A11y = (function () {
   function write2(v) { mem2 = v; try { if (v) window.localStorage.setItem(KEY2, '1'); else window.localStorage.removeItem(KEY2); } catch (_) {} }
   function apply2(v) { document.documentElement.classList.toggle('calm-mode', v); sw2.setAttribute('aria-checked', v ? 'true' : 'false'); state2.textContent = v ? '켜짐' : '꺼짐'; }
   function setCalm(v) { write2(v); apply2(v); }
+  // 소리 끄기(음소거): 켜짐/꺼짐 값만 저장 (위 두 설정과 같은 방식)
+  var KEY3 = 'a11yMute', mem3 = false, sw3 = document.getElementById('a11y-sw3'), state3 = document.getElementById('a11y-state3');
+  function read3() { try { return window.localStorage.getItem(KEY3) === '1'; } catch (_) { return mem3; } }
+  function write3(v) { mem3 = v; try { if (v) window.localStorage.setItem(KEY3, '1'); else window.localStorage.removeItem(KEY3); } catch (_) {} }
+  function apply3(v) {
+    SFX.muted = !!v;
+    if (SFX.mute && SFX.ctx) { try { SFX.mute.gain.setValueAtTime(v ? 0 : 1, SFX.ctx.currentTime); } catch (_) {} }
+    sw3.setAttribute('aria-checked', v ? 'true' : 'false'); state3.textContent = v ? '켜짐' : '꺼짐';
+  }
+  function setMute(v) { write3(v); apply3(v); }
   function openPop() { open = true; pop.classList.add('a11y-open'); sw.focus({ preventScroll: true }); }
   function closePop() { if (!open) return; open = false; pop.classList.remove('a11y-open'); btn.focus({ preventScroll: true }); }
   [btn, pop].forEach(function (el) {   // 누름이 인트로·본 활동으로 새지 않게
     ['pointerdown', 'pointerup', 'click', 'touchstart'].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); }); });
   });
-  // 버튼을 1920x1080 무대 안쪽 오른쪽 아래 모서리(여백 24px, 무대 기준)에 맞춤. 크기는 그대로
-  function place() {
-    var s = Math.min(innerWidth / 1920, innerHeight / 1080);
-    btn.style.right = ((innerWidth - 1920 * s) / 2 + 24 * s) + 'px';
-    btn.style.bottom = ((innerHeight - 1080 * s) / 2 + 24 * s) + 'px';
-  }
-  window.addEventListener('resize', place);
-  window.addEventListener('orientationchange', place);
-  document.addEventListener('fullscreenchange', place);
-  document.addEventListener('webkitfullscreenchange', place);
-  place();
+  // 전체화면 버튼과 같은 방식: 현재 화면의 무대 안(오른쪽 아래, 여백 24px)으로 옮겨 붙임 → 무대와 같은 비율로 커지고 줄어듦
+  function mount(stageEl) { stageEl.appendChild(btn); }
   btn.addEventListener('click', openPop);
   pop.addEventListener('click', function (e) { if (e.target === pop) closePop(); });
   sw.addEventListener('click', function () { setMode(sw.getAttribute('aria-checked') !== 'true'); });
   sw2.addEventListener('click', function () { setCalm(sw2.getAttribute('aria-checked') !== 'true'); });
-  document.getElementById('a11y-reset').addEventListener('click', function () { setMode(false); setCalm(false); });
+  sw3.addEventListener('click', function () { setMute(sw3.getAttribute('aria-checked') !== 'true'); });
+  document.getElementById('a11y-reset').addEventListener('click', function () { setMode(false); setCalm(false); setMute(false); });
   document.getElementById('a11y-close').addEventListener('click', closePop);
   window.addEventListener('keydown', function (e) {   // 팝업이 열려 있는 동안 키 입력이 뒤 화면으로 가지 않게 (Tab·클릭 동작은 그대로)
     if (!open) return;
@@ -3548,8 +3568,8 @@ var A11y = (function () {
     e.stopPropagation();
   }, true);
   window.addEventListener('keyup', function (e) { if (open) e.stopPropagation(); }, true);
-  apply(read()); apply2(read2());
-  return { set: setMode, setCalm: setCalm };
+  apply(read()); apply2(read2()); apply3(read3());
+  return { set: setMode, setCalm: setCalm, setMute: setMute, mount: mount };
 })();
 
 Flow.start();
