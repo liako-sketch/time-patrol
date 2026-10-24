@@ -202,14 +202,11 @@ button { font-family: var(--font-title); font-weight: 600; }
   background: rgba(30, 110, 125, 0.5); border: 3px solid rgba(110, 255, 240, 0.95);
   box-shadow: inset 0 0 60px rgba(110, 255, 240, 0.35), 0 0 36px rgba(110, 255, 240, 0.55);
 }
-.board-slot.board-flash { animation: board-flash .25s ease-out; }
-.board-slot.board-err.board-flash { animation: board-flashErr .25s ease-out; }
-@keyframes board-flashErr {
-  from { border-color: #ffd6da; box-shadow: inset 0 0 80px rgba(255, 120, 135, 0.8), 0 0 50px 10px rgba(255, 77, 94, 0.95); }
-}
-@keyframes board-flash {
-  from { border-color: #eaffff; box-shadow: inset 0 0 80px rgba(180, 255, 250, 0.8), 0 0 50px 10px rgba(150, 255, 248, 0.95); }
-}
+.board-slot::before { content: ''; position: absolute; inset: -3px; border-radius: inherit; box-sizing: border-box; pointer-events: none; opacity: 0;
+  border: 3px solid #eaffff; box-shadow: inset 0 0 80px rgba(180, 255, 250, 0.8), 0 0 50px 10px rgba(150, 255, 248, 0.95); }   /* 칸에 붙을 때 번쩍임: 그림자를 움직이지 않고 이 겹의 투명도만 줄임 (다시 그리기 없음) */
+.board-slot.board-err::before { border-color: #ffd6da; box-shadow: inset 0 0 80px rgba(255, 120, 135, 0.8), 0 0 50px 10px rgba(255, 77, 94, 0.95); }
+.board-slot.board-flash::before { animation: board-flashFade .25s ease-out; }
+@keyframes board-flashFade { from { opacity: 1; } to { opacity: 0; } }
 .board-slot .board-no { position: absolute; left: 16px; top: 10px; font-family: var(--font-title); font-weight: 600; font-size: 18px; color: rgba(160, 230, 240, 0.35); }
 
 /* 오류 칸 */
@@ -672,6 +669,7 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
   font-family: var(--font-title); font-weight: 600; font-size: 13px; line-height: 1; color: #8ff3fa;
   background: rgb(10, 25, 45); border: 2px solid #5fd4e0; border-radius: 16px; box-shadow: 0 0 14px rgba(95, 212, 224, .3); }
 #a11y-btn:hover, #a11y-btn:focus-visible { background: rgb(18, 42, 72); }
+#a11y-btn:disabled { opacity: .35; cursor: default; pointer-events: none; }   /* 분석(로딩) 중에는 누를 수 없음 */
 #a11y-btn svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 #a11y-btn svg circle { fill: currentColor; stroke: none; }
 #a11y-pop { position: fixed; inset: 0; z-index: 950; background: rgba(2, 8, 20, .6); display: flex; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box;
@@ -1424,10 +1422,18 @@ var FS = (function () {
   function element() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
   function request() { return docEl.requestFullscreen ? docEl.requestFullscreen() : docEl.webkitRequestFullscreen && docEl.webkitRequestFullscreen(); }
   function exit() { return document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen && document.webkitExitFullscreen(); }
+  // 가로 고정: 안드로이드(크롬·갤럭시 등)는 전체화면 상태에서 가능. 지원하지 않는 기기(아이폰·아이패드)에서는 조용히 무시됨
+  function lockLandscape() {
+    try { var o = window.screen && screen.orientation; if (o && o.lock) { var r = o.lock('landscape'); if (r && r.catch) r.catch(function () {}); } } catch (_) {}
+  }
+  function unlockLandscape() {
+    try { var o = window.screen && screen.orientation; if (o && o.unlock) o.unlock(); } catch (_) {}
+  }
   function update() {
     var on = !!element();
     btn.innerHTML = (on ? ICON_EXIT : ICON_ENTER) + '<span>' + (on ? '전체화면 해제' : '전체화면') + '</span>';
     btn.setAttribute('aria-label', on ? '전체 화면 해제' : '전체 화면');
+    if (on) lockLandscape(); else unlockLandscape();   // 전체화면이면 가로로 고정, 해제하면 풀어 줌
   }
   // 사용자가 누를 때만 전환, 미지원 기기에서는 버튼 숨김
   if ((docEl.requestFullscreen || docEl.webkitRequestFullscreen) && document.fullscreenEnabled !== false) {
@@ -1502,6 +1508,12 @@ var Intro = (function () {
       svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('class', 'intro-waitArrow');
       path.setAttribute('d', WAIT_ARROWS[p]); svg.appendChild(path); box.appendChild(svg);
     });
+    // 아이폰은 웹페이지 전체화면을 지원하지 않으므로, 아이폰에서만 첫 화면에 한 줄 더 안내
+    if (/iPhone|iPod/.test(navigator.userAgent)) {
+      var phoneNote = '※ 아이폰은 전체화면을 지원하지 않아요. 화면을 가로로 돌려서 해 주세요.';
+      box.appendChild(document.createElement('br')); box.appendChild(document.createTextNode(phoneNote));
+      box.setAttribute('aria-label', box.getAttribute('aria-label') + ' ' + phoneNote);
+    }
   })();
   var yesBtn = $('intro-yes');   // 말풍선 위 '네' 버튼 (yes: true 인 대사가 다 나온 뒤에만 보임)
   var panel = $('intro-namePanel'), input = $('intro-nameInput'), err = $('intro-nameErr');
@@ -1828,7 +1840,7 @@ var Board = (function () {
     autoScrollMax: 900,       // 자동 스크롤 최대 속도(px/초)
     dragThreshold: 6,         // 이 픽셀 이상 움직여야 '끌기'
     wheelStep: 140,           // 휠 한 칸(약 100px 입력)당 이동 목표량(px)
-    inertiaFriction: 6,       // 배경을 끌어 스크롤하고 놓은 뒤 관성이 줄어드는 정도(클수록 빨리 멈춤). 놓은 뒤 이동 거리 ≈ 놓을 때 속도 ÷ 이 값
+    inertiaFriction: 5,       // 배경을 끌어 스크롤하고 놓은 뒤 관성이 줄어드는 정도(클수록 빨리 멈춤). 놓은 뒤 이동 거리 ≈ 놓을 때 속도 ÷ 이 값
     inertiaMaxSpeed: 2500,    // 관성 시작 속도 상한(px/초)
     wheelEase: 0.14,          // 매 프레임 남은 거리의 이 비율만큼 이동(감속 접근)
     toriAvatarScale: 1.015,   // 초상 안 토리 이미지 크기 = 원 지름 × 이 값 (4개 포즈 공통)
@@ -2537,7 +2549,7 @@ var Board = (function () {
     return new Promise(function (resolve) {
       anaBuild(); var R = anaRefs, ok = !!(g && g.ok), still = anaStill(), t0 = performance.now(), timers = [], raf = 0, anims = [];
       var shrinkAnim = null, angles = R.spins.map(function () { return 0; }), accelAt = 0, fast = false, curMult = 1, alive = true, canSkip = false, closing = false;
-      anaBusy = true;
+      anaBusy = true; syncTools();
       function later(fn, ms) { var t = setTimeout(fn, ms); timers.push(t); return t; }
       // 초기화
       R.tori.style.visibility = ''; R.tori2.style.visibility = 'hidden'; R.tori3.style.visibility = 'hidden'; R.tori3.src = 'images/tori/tori_' + TORI_POSES.roading + '.webp'; R.tori2.src = 'images/tori/tori_' + (ok ? TORI_POSES.happy : TORI_POSES.sad) + '.webp';   // 매번 처음 표정(what)으로, 결과 표정은 미리 준비
@@ -2577,7 +2589,7 @@ var Board = (function () {
         anims.forEach(function (a) { try { a.cancel(); } catch (_) {} });
         window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKey, true); anaEl.removeEventListener('click', onClick);
         Array.prototype.slice.call(anaEl.querySelectorAll('.ana-p')).forEach(function (p) { p.parentNode.removeChild(p); });
-        anaBusy = false;
+        anaBusy = false; syncTools();
         if (anaEl && anaEl.parentNode) anaEl.parentNode.removeChild(anaEl);   // 다음 시행에 이전 상태가 남아 충돌하지 않도록 매번 새로 만듦
         anaEl = null; anaRefs = null;
       }
@@ -2701,13 +2713,13 @@ var Board = (function () {
       if (!k.locked) k.solved = true;
       if (k.where !== ERR) k.el.classList.add('board-okc');
     });
-    sceneEl.classList.add('board-solved'); $('board-reset').disabled = true;
+    sceneEl.classList.add('board-solved'); syncTools();
     updateConfirm();
   }
   function resetSolved() {
     boardSolved = false; lastAnswer = ''; revealed = false; applyReveal(false); if (typeof Comm !== 'undefined') Comm.setSolved(false);
     cards.forEach(function (k) { k.solved = false; k.el.classList.remove('board-okc'); });
-    sceneEl.classList.remove('board-solved'); $('board-reset').disabled = false;
+    sceneEl.classList.remove('board-solved'); syncTools();
     closeRes(); closeCmp(); closeLnk();
   }
   function showSuccess() {
@@ -3122,7 +3134,7 @@ var Board = (function () {
       scrollTarget = Math.max(0, Math.min(maxScroll, scrollTarget + a[1] * (L.slotW + L.slotGap)));
     });
   });
-  bind($('board-reset'), 'click', function () { if (!boardSolved) cardsReset(); });   // 맞춰서 고정된 동안은 동작하지 않음
+  bind($('board-reset'), 'click', function () { if (!boardSolved && !$('board-reset').disabled) cardsReset(); });   // 타임라인을 고치는 중에만 동작 (맞춰서 고정된 뒤·분석 중·팝업이 떠 있는 동안은 안 됨)
   // 설명 패널: 패널 안/뒤 누름이 무대의 끌기 처리로 넘어가지 않게 막고, X·바깥·Esc 로 닫음
   bind(detailEl, 'pointerdown', function (e) { e.stopPropagation(); });
   // 확대된 카드를 누르면 닫기 (열린 직후 같은 터치의 click 으로 바로 닫히지 않게 0.35초는 무시)
@@ -3468,6 +3480,20 @@ var Board = (function () {
     return { frame: frame, show: show, reset: reset, note: note, noteAdvance: noteAdvance, noteActive: function () { return noteOn; }, splitNote: splitNote, cardDown: cardDown, setSolved: setSolved };
   })();
 
+  // '사료카드 재배치'와 접근성 버튼 상태: 타임라인을 고치는 중(처음, 실패 뒤 다시 고칠 때)에만 재배치 가능
+  // 맞춰서 고정된 뒤에는 재배치 버튼을 화면에서 뺌, 분석(로딩) 중에는 접근성 버튼도 못 누름
+  var toolsResetBtn = $('board-reset'), toolsA11yBtn = document.getElementById('a11y-btn');
+  function syncTools() {
+    var busy = warnOpen || auditOpen || subOpen || resOpen || cmpOpen || !!detailCard || anaBusy;
+    toolsResetBtn.style.display = boardSolved ? 'none' : '';
+    toolsResetBtn.disabled = busy || boardSolved;
+    if (toolsA11yBtn) toolsA11yBtn.disabled = anaBusy;
+  }
+  if (window.MutationObserver) {
+    var toolsMo = new MutationObserver(syncTools);
+    [warnEl, auditEl, subEl, resEl, cmpEl, detailEl].forEach(function (e) { if (e) toolsMo.observe(e, { attributes: true, attributeFilter: ['class'] }); });
+  }
+  syncTools();
   applyWorld();
   placeAll(false); refreshSlots(); setScroll(0);
   return { fit: fit, on: on, reset: reset, stage: stage, showComm: Comm.show };
