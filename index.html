@@ -504,7 +504,6 @@ button { font-family: var(--font-title); font-weight: 600; }
 .ana-ringglow { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 26px 4px currentColor; opacity: .28; transition: opacity .25s ease; }   /* 프로필 .board-ringglow 와 같은 값 */
 .ana-ringglow.ana-hide { opacity: 0; }
 .ana-ringsvg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; opacity: .85; }
-.ana-ringsvg .ana-arcs { transform-origin: 118px 118px; }
 .ana-disc { position: absolute; left: 33px; top: 33px; width: 366px; height: 366px; border-radius: 50%; overflow: hidden; background: #0a1a2c; }   /* 프로필 #board-portrait 와 같은 불투명 원판 (알파 1.0) */
 .ana-disc::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-sizing: border-box; border: 2px solid rgba(95, 212, 224, 0.6); pointer-events: none; }   /* 프로필 초상 테두리와 같은 값 */
 #board-ana-tori, #board-ana-tori2, #board-ana-tori3 { position: absolute; left: 32px; top: 32px; width: 302px; height: 302px; object-fit: contain; animation: ana-bob 4s ease-in-out infinite alternate; pointer-events: none; user-select: none; }
@@ -1755,7 +1754,7 @@ var Intro = (function () {
 
   // 키보드가 올라와 이름 입력창을 가리면(키보드가 화면 위에 겹치는 브라우저) 입력창이 보일 만큼만 화면을 올림
   // 카카오톡처럼 키보드 때문에 화면 크기 자체가 줄어드는 브라우저는 기존처럼 화면이 줄어들어 보임(이 코드는 개입하지 않음)
-  var baseH = innerHeight, coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  var baseH = innerHeight, coarse = !!((window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 0);   // 키보드 커버가 붙은 태블릿은 기본 포인터가 마우스로 잡히므로 터치 가능 여부도 봄
   addEventListener('resize', function () { if (document.activeElement !== input) baseH = Math.max(baseH, innerHeight); });
   function updateKb() {
     var vv = window.visualViewport, want = 0;
@@ -1765,7 +1764,7 @@ var Intro = (function () {
         var r = panel.getBoundingClientRect(), bottom0 = r.bottom + kbShift, top0 = r.top + kbShift;
         var visBottom = vv ? vv.offsetTop + vv.height : innerHeight;
         // 키보드가 화면 위에 겹치는데 브라우저가 알려 주지 않는 경우(일부 안드로이드 브라우저): 터치 기기면 키보드가 화면 아래 절반쯤 가린다고 보고 올림
-        if (visBottom > innerHeight * 0.85 && coarse) visBottom = innerHeight * 0.5;
+        if (visBottom > innerHeight * 0.85 && coarse) visBottom = innerHeight * 0.42;   // 키보드(와 위의 도구 줄)가 화면 아래 58%쯤 가린다고 보고 입력창을 그 위로 올림
         want = Math.max(0, bottom0 + 12 - visBottom);
         want = Math.min(want, Math.max(0, top0 - 8));
       }
@@ -1810,7 +1809,7 @@ var Intro = (function () {
   });
   bind(yesBtn, 'click', function (e) { e.stopPropagation(); advance(true); yesBtn.blur(); });   // Enter·터치와 같은 진행 (효과음도 advance 안에서 기존 소리)
   bind($('intro-nameBtn'), 'click', function (e) { e.stopPropagation(); submitName(); });
-  bind(input, 'focus', function () { setTimeout(updateKb, 250); setTimeout(updateKb, 700); });
+  bind(input, 'focus', function () { setTimeout(updateKb, 250); setTimeout(updateKb, 700); setTimeout(updateKb, 1300); });
   bind(input, 'blur', function () { if (kbShift) { kbShift = 0; fit(); } });
   if (window.visualViewport) { bind(window.visualViewport, 'resize', updateKb); bind(window.visualViewport, 'scroll', updateKb); }
   bind(input, 'keydown', function (e) { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submitName(); } });
@@ -2608,7 +2607,7 @@ var Board = (function () {
       R.orb.classList.add('ana-instant'); R.orb.classList.remove('ana-redden', 'ana-green'); void R.orb.offsetWidth; R.orb.classList.remove('ana-instant');   // 색도 처음(청록)으로 즉시
       R.chat.classList.toggle('ana-fail', !ok); R.chat.firstChild.textContent = ok ? '성공!' : '실패...';   // 결과에 따라 창 색·글자
       R.move.style.transition = 'none'; R.move.style.transform = ''; R.pop.style.transform = '';
-      R.spins.forEach(function (p) { p[0].style.transform = ''; });
+      R.spins.forEach(function (p) { p[0].removeAttribute('transform'); p[0].style.transform = ''; });
       R.ells.forEach(function (e) { e.classList.remove('ana-hide'); });
       R.chat.style.transition = 'none'; R.chat.style.transform = 'scaleX(0)'; R.chat.style.opacity = '0'; R.chat.classList.remove('ana-show');
       R.txt.classList.remove('ana-off'); R.note.classList.remove('ana-off'); R.dots.textContent = '';
@@ -2629,10 +2628,11 @@ var Board = (function () {
       function frame(now) {
         if (!alive) return;
         if (!frame.n) { frame.n = 1; BC('ana:raf1'); }
+        frame.c = (frame.c || 0) + 1; if (frame.c === 30 || frame.c === 90 || frame.c === 180) BC('ana:f' + frame.c);
         var dt = Math.min(0.05, (now - last) / 1000); last = now;
         if (fast) { var k = Math.min(1, (now - accelAt) / ANA_ACCEL_MS); curMult = 1 + (ANA_ACCEL_MULT - 1) * k * k; } else curMult += (1 - curMult) * (1 - Math.exp(-dt * 8));   // 결과가 나오면 원래 속도로 부드럽게 복귀
         var mult = curMult;
-        R.spins.forEach(function (p, i) { angles[i] = (angles[i] + ANA_SPIN_BASE * p[1] * mult * dt) % 360; p[0].style.transform = 'rotate(' + angles[i].toFixed(1) + 'deg)'; });
+        R.spins.forEach(function (p, i) { angles[i] = (angles[i] + ANA_SPIN_BASE * p[1] * mult * dt) % 360; p[0].setAttribute('transform', 'rotate(' + angles[i].toFixed(1) + ' 118 118)'); });   // SVG 속성 방식(토리 프로필 링과 같은 방식)
         raf = requestAnimationFrame(frame);
       }
       raf = requestAnimationFrame(frame);   // 호 회전은 모션 줄이기와 관계없이 항상 돎 (요청에 따라 예외)
