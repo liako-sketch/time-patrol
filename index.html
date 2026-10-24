@@ -957,6 +957,16 @@ var PIECES = [
   { n: 6, w: 377, h: 451, x: 2371, y: 13, dx: 4, dy: 18, rot: 1, dur: 10.83, delay: -2 },    // 금 간 고층 건물
   { n: 7, w: 377, h: 340, x: 2375, y: 474, dx: 6, dy: 12, rot: 1, dur: 8.33, delay: -7 }   // 성벽
 ];
+// 화면 크기: 아이폰 인앱 브라우저는 처음 열 때 innerHeight 가 아래 도구막대 뒤까지 포함한 큰 값이라 화면이 아래로 치우쳐 뜸(새로고침하면 정상). 실제로 보이는 영역(visualViewport)이 더 작으면 그 값을 씀. 글자를 입력하는 중에는 키보드 때문에 줄어든 값을 쓰지 않음
+function viewSize() {
+  var w = innerWidth, h = innerHeight, vv = window.visualViewport, ae = document.activeElement;
+  var typing = !!(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA'));
+  if (vv && !typing) {
+    if (vv.height > 0 && vv.height < h) h = vv.height;
+    if (vv.width > 0 && vv.width < w) w = vv.width;
+  }
+  return { w: w, h: h };
+}
 var TORI_CODENAME = '';   // 입력한 코드네임 (화면이 떠 있는 동안 메모리에만 보관. 저장·전송·출력 없음)
 // ===== 본 활동 토리 대사 (나중에 여기만 고치면 됨) =====
 var BOARD_LINES = {
@@ -1554,8 +1564,8 @@ var Intro = (function () {
 
   // ===== 무대 비율 =====
   function fit() {
-    var s = Math.min(innerWidth / 1920, innerHeight / 1080);
-    stage.style.transform = 'translate(' + ((innerWidth - 1920 * s) / 2) + 'px,' + ((innerHeight - 1080 * s) / 2) + 'px) scale(' + s + ')';
+    var V = viewSize(), s = Math.min(V.w / 1920, V.h / 1080);
+    stage.style.transform = 'translate(' + ((V.w - 1920 * s) / 2) + 'px,' + ((V.h - 1080 * s) / 2) + 'px) scale(' + s + ')';
   }
   addEventListener('resize', fit);
   fit();
@@ -1910,8 +1920,9 @@ var Board = (function () {
   var active = false;
 
   function fit() {
-    scale = Math.min(innerWidth / L.stageW, innerHeight / L.stageH);
-    offX = (innerWidth - L.stageW * scale) / 2; offY = (innerHeight - L.stageH * scale) / 2;
+    var V = viewSize();
+    scale = Math.min(V.w / L.stageW, V.h / L.stageH);
+    offX = (V.w - L.stageW * scale) / 2; offY = (V.h - L.stageH * scale) / 2;
     stage.style.transform = 'translate(' + offX + 'px,' + offY + 'px) scale(' + scale + ')';
     var fs = $('board-auditFrame').style;   // 서술 화면 가장자리 틈 가림 틀: 무대 경계에서 2px 바깥
     fs.left = (offX - 2) + 'px'; fs.top = (offY - 2) + 'px'; fs.width = (L.stageW * scale + 4) + 'px'; fs.height = (L.stageH * scale + 4) + 'px';
@@ -2641,7 +2652,8 @@ var Board = (function () {
         raf = requestAnimationFrame(frame);
       }
       var spinAnims = [];
-      if (!LT('rot')) R.spins.forEach(function (p) {   // 호 두 개: 기본 속도로 한 바퀴 6초(시계), 9초(반시계). 속도 변화는 playbackRate 로
+      var NO_SPIN = /iPhone|iPod/.test(navigator.userAgent);   // 아이폰에서는 호 회전이 분석 화면을 멈추게 해서 호를 고정해 둠 (다른 기기는 그대로 돎)
+      if (!NO_SPIN && !LT('rot')) R.spins.forEach(function (p) {   // 호 두 개: 기본 속도로 한 바퀴 6초(시계), 9초(반시계). 속도 변화는 playbackRate 로
         var secs = 360 / (ANA_SPIN_BASE * Math.abs(p[1]));
         var an = p[0].animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: secs * 1000, iterations: Infinity, direction: p[1] < 0 ? 'reverse' : 'normal' });
         spinAnims.push(an); anims.push(an);
@@ -3728,6 +3740,14 @@ var A11y = (function () {
   return { set: setMode, setCalm: setCalm, setMute: setMute, mount: mount };
 })();
 
+// 화면 맞춤을 다시 하는 시점: 로드·복귀·회전·보이는 영역이 바뀔 때, 그리고 열린 직후 몇 번 (브라우저가 크기를 늦게 알려 주는 경우 대비)
+(function () {
+  function refitAll() { try { Intro.fit(); Board.fit(); } catch (_) {} }
+  ['load', 'pageshow', 'orientationchange'].forEach(function (ev) { addEventListener(ev, refitAll); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', refitAll);
+  [150, 500, 1200, 2500].forEach(function (ms) { setTimeout(refitAll, ms); });
+  document.addEventListener('pointerdown', function once() { document.removeEventListener('pointerdown', once, true); setTimeout(refitAll, 50); }, true);
+})();
 Flow.start();
 </script>
 </body>
