@@ -6,38 +6,6 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <link rel="icon" href="data:,">
 <title>타임 패트롤: 서임권 투쟁</title>
-<script>
-/* DEBUG-BC (임시 진단): 아이폰에서 최종 제출 때 새로고침되는 지점을 찾기 위한 기록. 이 탭의 sessionStorage 에만 남고 어디로도 전송되지 않음. 원인을 찾으면 지움 */
-(function () {
-  var K = 'tp_bc', arr = [], t0 = performance.now();
-  try {
-    var prev = sessionStorage.getItem(K);
-    if (prev) {
-      sessionStorage.removeItem(K);
-      var lines = JSON.parse(prev);
-      document.addEventListener('DOMContentLoaded', function () {
-        var d = document.createElement('div');
-        d.style.cssText = 'position:fixed;left:4px;top:4px;z-index:99999;max-width:94vw;padding:6px 8px;background:rgba(0,0,0,.85);color:#ffd54a;font:11px/1.35 monospace;white-space:pre-wrap;border-radius:6px';
-        d.textContent = '[이전 실행 기록 - 화면을 누르면 닫힘]' + String.fromCharCode(10) + lines.join(String.fromCharCode(10));
-        d.addEventListener('click', function () { d.remove(); });
-        document.body.appendChild(d);
-      });
-    }
-  } catch (e) {}
-  var LITE = ((location.search.match(/[?&]lite=([^&]*)/) || [])[1] || '');
-  window.LITE = LITE; window.LT = function (k) { return LITE === 'all' || LITE.split(',').indexOf(k) >= 0; };   // ?lite=svg,glow,bob,hum,fade,dots,rot 또는 ?lite=all : 분석 화면의 해당 부분만 끄고 시험 (원인 찾기용)
-  window.BC = function (s) {
-    try { arr.push(Math.round(performance.now() - t0) + ' ' + s); if (arr.length > 16) arr.shift(); sessionStorage.setItem(K, JSON.stringify(arr)); } catch (e) {}
-  };
-  addEventListener('pagehide', function () { window.BC('pagehide'); });
-  document.addEventListener('visibilitychange', function () { window.BC('vis:' + document.visibilityState); });
-  document.addEventListener('focusin', function (e) { window.BC('focusin:' + (e.target.id || e.target.tagName)); });
-  document.addEventListener('focusout', function (e) { window.BC('focusout:' + (e.target.id || e.target.tagName)); });
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { window.BC('vv:' + Math.round(window.visualViewport.height)); });
-  window.BC('load');
-  addEventListener('error', function (e) { window.BC('error:' + String(e.message).slice(0, 60)); });
-})();
-</script>
 <link rel="preload" href="fonts/April16th-Promise.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-4Regular.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -2423,10 +2391,10 @@ var Board = (function () {
   }
   function submitAudit() {   // '제출하기': 바로 제출하지 않고 확인 팝업을 먼저 띄움
     if (auditSent || subOpen || auditInput.value.trim().length < AUDIT_MIN) return;
-    BC('sub:click'); openSub();
+    openSub();
   }
   function openSub() {
-    BC('sub:start'); var noteEl = $('board-snote'); noteEl.textContent = '';
+    var noteEl = $('board-snote'); noteEl.textContent = '';
     [SUB_NOTE_1, (AUDIT_ENDPOINT && AUDIT_SAVE_ANSWERS) ? SUB_NOTE_2_ON : SUB_NOTE_2_OFF].forEach(function (t, k) {
       var sp = document.createElement('span'), at = k === 0 ? t.indexOf(SUB_NOTE_1_GLOW) : -1;
       if (at >= 0) {   // 첫 줄의 지정 구절만 빛나는 글씨 (글자는 그대로 나눠 붙임)
@@ -2437,13 +2405,13 @@ var Board = (function () {
       } else sp.textContent = t;
       noteEl.appendChild(sp);
     });
-    BC('sub:note'); subOpen = true; auditEl.inert = true; BC('sub:inert');   // 뒤 서술 화면은 키보드로도 건드리지 못하게
-    try { document.activeElement.blur(); } catch (_) {} BC('sub:blur');
+    subOpen = true; auditEl.inert = true;   // 뒤 서술 화면은 키보드로도 건드리지 못하게
+    try { document.activeElement.blur(); } catch (_) {}
     var left = SUBMIT_WAIT_SEC;
     subGo.style.setProperty('--sub-wait', SUBMIT_WAIT_SEC + 's');   // 진행 표시줄 시간도 같은 값으로
     subGo.disabled = true; subGo.classList.remove('board-wait'); void subGo.offsetWidth; subGo.classList.add('board-wait');
     $('board-sgoLabel').textContent = '최종 제출 (' + left + ')';
-    subEl.classList.add('board-open'); BC('sub:open');
+    subEl.classList.add('board-open');
     clearInterval(subTimer);
     subTimer = setInterval(function () {
       left--;
@@ -2452,7 +2420,7 @@ var Board = (function () {
       $('board-sgoLabel').textContent = '최종 제출'; subGo.classList.remove('board-wait'); subGo.disabled = false;
       SFX.play('confirmShow', AUDIO.level.confirm);   // '타임라인 수정하기' 버튼이 나타날 때와 같은 소리
     }, 1000);
-    $('board-sback').focus({ preventScroll: true }); BC('sub:end');
+    $('board-sback').focus({ preventScroll: true });
   }
   function closeSub() {
     clearInterval(subTimer); subTimer = null;
@@ -2616,19 +2584,19 @@ var Board = (function () {
     var pop = document.createElement('div'); pop.className = 'ana-layer'; move.appendChild(pop);
     var orb = document.createElement('div'); orb.id = 'board-ana-orb'; pop.appendChild(orb);
     var rbox = document.createElement('div'); rbox.className = 'ana-ringbox';
-    var glow = document.createElement('div'); glow.className = 'ana-ringglow'; rbox.appendChild(glow); if (LT('glow')) glow.style.display = 'none';
-    if (!LT('svg')) rbox.insertAdjacentHTML('beforeend', anaRingSvg() + anaArcSvg(110, '134.38 96') + anaArcSvg(116, '141.7 101.2'));
+    var glow = document.createElement('div'); glow.className = 'ana-ringglow'; rbox.appendChild(glow);
+    rbox.insertAdjacentHTML('beforeend', anaRingSvg() + anaArcSvg(110, '134.38 96') + anaArcSvg(116, '141.7 101.2'));
     orb.appendChild(rbox);
     var arcs = rbox.querySelectorAll('.ana-arcsvg, .ana-cssarc');
     var disc = document.createElement('div'); disc.className = 'ana-disc'; orb.appendChild(disc);
     var tori = document.createElement('img'); tori.id = 'board-ana-tori'; tori.alt = ''; tori.src = 'images/tori/tori_what.webp'; tori.draggable = false; disc.appendChild(tori);
     var tori2 = document.createElement('img'); tori2.id = 'board-ana-tori2'; tori2.alt = ''; tori2.draggable = false; tori2.style.visibility = 'hidden'; disc.appendChild(tori2);
     var tori3 = document.createElement('img'); tori3.id = 'board-ana-tori3'; tori3.alt = ''; tori3.draggable = false; tori3.style.visibility = 'hidden'; disc.appendChild(tori3);   // 검사 중(원이 작아지는 동안) 로딩 그림. 미리 불러 두고 보이기만 함   // 결과 표정(happy/sad)은 미리 불러 둔 이 그림을 겹쳐 두었다가 보이기만 함 (그림 교체 때 깜빡이거나 사라지는 것 방지)
-    if (IS_IPHONE || LT('bob')) tori.style.animation = tori2.style.animation = tori3.style.animation = 'none';
+    if (IS_IPHONE) tori.style.animation = tori2.style.animation = tori3.style.animation = 'none';
     var txt = document.createElement('p'); txt.id = 'board-ana-txt'; txt.appendChild(document.createTextNode('분석 중이에요')); var dots = document.createElement('span'); txt.appendChild(dots); anaEl.appendChild(txt);
     var note = document.createElement('p'); note.id = 'board-ana-note'; note.textContent = '개인정보로 보이는 부분은 가려서 분석해요.'; note.hidden = !ANA_SHOW_NOTE; anaEl.appendChild(note);
     var chat = document.createElement('div'); chat.id = 'board-ana-chat'; var ct = document.createElement('span'); ct.textContent = '성공!'; chat.appendChild(ct); move.insertBefore(chat, pop);   // 원과 함께 움직이도록 이동 층 안, 원(pop) 뒤에
-    if (IS_IPHONE || LT('fade')) anaEl.style.transition = 'none';
+    if (IS_IPHONE) anaEl.style.transition = 'none';
     $('board-shaker').appendChild(anaEl);
     // 회전 목록: [요소, 상대 속도(음수는 반대 방향)]
     anaRefs = { tori: tori, tori2: tori2, tori3: tori3, dim: dim, move: move, pop: pop, orb: orb, txt: txt, dots: dots, note: note, chat: chat, ells: [glow],
@@ -2637,7 +2605,7 @@ var Board = (function () {
   // 분석 대기 연출 한 번. 끝나면(화면이 닫힌 뒤) resolve. 정답이면 정답 연출까지, 아니면 대기만 하고 바로 닫음
   function runAnalysisSequence(g) {
     return new Promise(function (resolve) {
-      BC('ana:build'); anaBuild(); BC('ana:built'); var R = anaRefs, ok = !!(g && g.ok), still = anaStill(), t0 = performance.now(), timers = [], raf = 0, anims = [];
+      anaBuild(); var R = anaRefs, ok = !!(g && g.ok), still = anaStill(), t0 = performance.now(), timers = [], raf = 0, anims = [];
       var shrinkAnim = null, angles = R.spins.map(function () { return 0; }), accelAt = 0, fast = false, curMult = 1, alive = true, canSkip = false, closing = false;
       anaBusy = true; syncTools();
       function later(fn, ms) { var t = setTimeout(fn, ms); timers.push(t); return t; }
@@ -2650,7 +2618,7 @@ var Board = (function () {
       R.ells.forEach(function (e) { e.classList.remove('ana-hide'); });
       R.chat.style.transition = 'none'; R.chat.style.transform = 'scaleX(0)'; R.chat.style.opacity = '0'; R.chat.classList.remove('ana-show');
       R.txt.classList.remove('ana-off'); R.note.classList.remove('ana-off'); R.dots.textContent = '';
-      anaEl.classList.add('ana-on'); document.documentElement.classList.add('ana-running'); BC('ana:on');
+      anaEl.classList.add('ana-on'); document.documentElement.classList.add('ana-running');
       // 키보드는 연출 뒤 화면으로 새지 않게 막고, Enter 는 '정답!' 뒤 건너뛰기에만 사용
       function onKey(e) {
         e.stopPropagation(); e.preventDefault();
@@ -2660,16 +2628,13 @@ var Board = (function () {
       window.addEventListener('keydown', onKey, true); window.addEventListener('keyup', onKey, true);
       anaEl.addEventListener('click', onClick);
       try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (_) {}
-      if (!LT('hum')) SFX.humStart({ vol: 0.5 }); BC('ana:hum');
-      [100, 300, 600, 1000, 2000, 3000].forEach(function (ms) { later(function () { BC('hb' + ms + ' fr=' + (frame.c || 0)); }, ms); });   // 시간이 지난 뒤에도 살아 있는지, 그때까지 화면이 몇 번 갱신됐는지   // 낮은 허밍(작게)
+      SFX.humStart({ vol: 0.5 });   // 낮은 허밍(작게)
       var dotN = 0, dotIv = null;
-      if (!LT('dots')) { dotIv = setInterval(function () { dotN = (dotN + 1) % 4; R.dots.textContent = '...'.slice(0, dotN); }, 450); timers.push(dotIv); }
+      dotIv = setInterval(function () { dotN = (dotN + 1) % 4; R.dots.textContent = '...'.slice(0, dotN); }, 450); timers.push(dotIv);
       // 원 테두리 회전 (모션 줄이기면 정지)
       var last = t0;
       function frame(now) {
         if (!alive) return;
-        if (!frame.n) { frame.n = 1; BC('ana:raf1'); }
-        frame.c = (frame.c || 0) + 1; if (frame.c === 30 || frame.c === 90 || frame.c === 180) BC('ana:f' + frame.c);
         var dt = Math.min(0.05, (now - last) / 1000); last = now;
         if (fast) { var k = Math.min(1, (now - accelAt) / ANA_ACCEL_MS); curMult = 1 + (ANA_ACCEL_MULT - 1) * k * k; } else curMult += (1 - curMult) * (1 - Math.exp(-dt * 8));   // 결과가 나오면 원래 속도로 부드럽게 복귀
         var mult = curMult;
@@ -2679,24 +2644,24 @@ var Board = (function () {
       }
       var spinAnims = [];
       var NO_SPIN = false;   // 아이폰에서는 호 회전이 분석 화면을 멈추게 해서 호를 고정해 둠 (다른 기기는 그대로 돎)
-      if (!NO_SPIN && !LT('rot')) R.spins.forEach(function (p) {   // 호 두 개: 기본 속도로 한 바퀴 6초(시계), 9초(반시계). 속도 변화는 playbackRate 로
+      if (!NO_SPIN) R.spins.forEach(function (p) {   // 호 두 개: 기본 속도로 한 바퀴 6초(시계), 9초(반시계). 속도 변화는 playbackRate 로
         var secs = 360 / (ANA_SPIN_BASE * Math.abs(p[1]));
         var an = p[0].animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: secs * 1000, iterations: Infinity, direction: p[1] < 0 ? 'reverse' : 'normal' });
         spinAnims.push(an); anims.push(an);
       });
-      if (!LT('rot')) raf = requestAnimationFrame(frame);   // 호 회전은 모션 줄이기와 관계없이 항상 돎 (요청에 따라 예외)
+      raf = requestAnimationFrame(frame);   // 호 회전은 모션 줄이기와 관계없이 항상 돎 (요청에 따라 예외)
       // 정리·닫기
       function cleanup() {
         alive = false; cancelAnimationFrame(raf); timers.forEach(function (t) { clearTimeout(t); clearInterval(t); });
         anims.forEach(function (a) { try { a.cancel(); } catch (_) {} });
         window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKey, true); anaEl.removeEventListener('click', onClick);
         Array.prototype.slice.call(anaEl.querySelectorAll('.ana-p')).forEach(function (p) { p.parentNode.removeChild(p); });
-        document.documentElement.classList.remove('ana-running'); anaBusy = false; syncTools(); BC('ana:cleanup');
+        document.documentElement.classList.remove('ana-running'); anaBusy = false; syncTools();
         if (anaEl && anaEl.parentNode) anaEl.parentNode.removeChild(anaEl);   // 다음 시행에 이전 상태가 남아 충돌하지 않도록 매번 새로 만듦
         anaEl = null; anaRefs = null;
       }
       function closeOut() {
-        if (closing) return; closing = true; canSkip = false; BC('ana:close');
+        if (closing) return; closing = true; canSkip = false;
         SFX.humStop(SFX.hum.fadeOut);
         anaEl.classList.remove('ana-on');                       // 0.3초 페이드아웃
         setTimeout(function () { cleanup(); resolve(); }, 320);
@@ -2704,7 +2669,7 @@ var Board = (function () {
       function skip() { if (!canSkip) return; closeOut(); }
       // 파티클: 원 좌우 바깥 가장자리(반지름 250 밖)에서 시작해 옆으로 퍼짐. 원 안은 침범하지 않음
       function particles() {
-        BC('ana:particles'); var colors = ['#5fd4e0', '#ffd54a', '#8ff3fa', '#ffd54a'], n = 64, i;
+        var colors = ['#5fd4e0', '#ffd54a', '#8ff3fa', '#ffd54a'], n = 64, i;
         for (i = 0; i < n; i++) {
           var p = document.createElement('span'); p.className = 'ana-p' + (i % 3 === 0 ? ' ana-star' : ''); p.style.background = colors[i % colors.length]; R.move.appendChild(p);
           var ang = (i % 2 ? 0 : Math.PI) + (Math.random() - 0.5) * 2.2, r0 = 276, r1 = 276 + 121 + Math.random() * 242;
@@ -2714,7 +2679,7 @@ var Board = (function () {
       var ANA_SLIDE_MS = 500, ANA_SLIDE_EASE = 'cubic-bezier(.4, 0, .3, 1)';   // 이동·펼침 공통: 아주 살짝 가속했다가 부드럽게 멈춤
       function moveAside() {   // 원이 왼쪽으로 옮겨 가는 것과 동시에, 원 안(왼쪽)에서부터 오른쪽으로 채팅이 뻗어 나옴 (모션 줄이기와 관계없이)
         if (ok) SFX.play('anaCorrect', AUDIO.level.anaCorrect);
-        BC('ana:move'); R.ells.forEach(function (e) { e.classList.add('ana-hide'); });   // 링 글로우는 채팅 자리를 침범하지 않게 먼저 흐려짐
+        R.ells.forEach(function (e) { e.classList.add('ana-hide'); });   // 링 글로우는 채팅 자리를 침범하지 않게 먼저 흐려짐
         R.move.style.transition = 'transform ' + ANA_SLIDE_MS + 'ms ' + ANA_SLIDE_EASE; R.chat.style.transition = 'transform ' + ANA_SLIDE_MS + 'ms ' + ANA_SLIDE_EASE + ', opacity .15s ease-out';
         void R.move.offsetWidth;
         R.move.style.transform = 'translateX(' + ANA_MOVE_X + 'px)'; R.chat.style.transform = 'scaleX(1)'; R.chat.style.opacity = '1';
@@ -2722,7 +2687,7 @@ var Board = (function () {
         later(closeOut, ANA_SLIDE_MS + (ok ? 2500 : 2000));   // 결과 창이 펼쳐진 뒤 성공 2.5초 / 실패 2초 (터치·Enter 로 건너뛸 수 없음)
       }
       function correctSequence() {
-        BC('ana:result'); SFX.humStop(SFX.hum.fadeOut); fast = false;   // 가속 끝: 회전은 원래 속도로 복귀
+        SFX.humStop(SFX.hum.fadeOut); fast = false;   // 가속 끝: 회전은 원래 속도로 복귀
         R.tori2.style.visibility = ''; R.tori.style.visibility = 'hidden'; R.tori3.style.visibility = 'hidden';   // 정답: 커지며 파티클이 터지는 장면부터 happy / 실패: sad
         if (ok) R.orb.classList.add('ana-green');   // 성공: 커지면서 원 테두리·링이 초록으로 (색 변화라 설정과 무관)
         if (!ok) R.orb.classList.add('ana-redden');   // 실패: 다시 커지면서 원 테두리·링이 붉어짐 (움직임이 아니라 색이므로 설정과 무관)
@@ -2744,7 +2709,7 @@ var Board = (function () {
       // 결과 연출은 (최소 대기 + 0.8초) 뒤에 시작하므로, 그보다 ANA_ACCEL_MS 앞서 가속 시작 (정답·실패 모두)
       function startAccel() {
         if (!alive || fast) return;
-        BC('ana:accel');
+       
         fast = true; accelAt = performance.now(); SFX.play('anaRise', AUDIO.level.ana);
         if (!still) { shrinkAnim = R.pop.animate([{ transform: 'scale(1)' }, { transform: 'scale(' + (ok ? ANA_SHRINK_TO : ANA_SHRINK_TO * 0.85).toFixed(3) + ')' }], { duration: ANA_ACCEL_MS, easing: ok ? 'ease-in' : 'cubic-bezier(.55, 0, .35, 1)', fill: 'forwards' }); anims.push(shrinkAnim); }   // 길이 = 가속 구간(결과 연출 시작과 같은 때 끝남). 실패는 바닥에서 부드럽게 멈춤
       }
@@ -2762,9 +2727,9 @@ var Board = (function () {
   }
   function finalSubmit() {
     if (!subOpen || subGo.disabled || auditSent) return;
-    BC('submit lite=' + (window.LITE || '-'));
+   
     lastAnswer = auditInput.value;   // 성공 팝업의 키워드 세기에만 쓰고 닫을 때 지움
-    closeSub(); closeAudit(); BC('closed');
+    closeSub(); closeAudit();
     var g = gradeBoard();
     if (anaBusy) return;
     runAnalysisSequence(g).then(function () {   // 분석 대기 연출 뒤에 기존 흐름
@@ -2796,7 +2761,7 @@ var Board = (function () {
     try { document.activeElement.blur(); } catch (_) {}
   }
   function showFail(g) {
-    BC('res:fail');
+   
     hintCount++;
     var list = [], i, c;
     for (i = 1; i <= ERR; i++) { c = occupant(i); if (c) { c.where = 'hand'; list.push(c); } }
@@ -2828,7 +2793,7 @@ var Board = (function () {
     closeRes(); closeCmp(); closeLnk();
   }
   function showSuccess() {
-    BC('res:ok');
+   
     solveBoard();
     SFX.play('successShow', AUDIO.level.success);
     openRes('ok', 'images/tori/tori_' + TORI_POSES.happy + '.webp', '타임라인을 수정하는 데 성공했어요!', function (body) {
