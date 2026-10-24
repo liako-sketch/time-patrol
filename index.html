@@ -742,6 +742,9 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 /* 흔들림·움직임 줄이기 (html.calm-mode): 화면 흔들림은 자바스크립트가 건너뛰고, 아래는 CSS 움직임을 멈춤 */
 html.calm-mode .board-piece { animation: none; }
 html.calm-mode #board-sub.board-open .board-glowtxt { animation: none; }
+/* 아이폰: 화면 전체를 덮는 창의 투명도 전환과 글자 글로우 반복이 웹킷을 죽이는 일이 있어 끔 */
+html.is-iphone #board-sub, html.is-iphone #board-sub.board-open, html.is-iphone #board-res, html.is-iphone #board-res.board-open { transition: none; }
+html.is-iphone #board-sub.board-open .board-glowtxt { animation: none; }
 #a11y-note { margin: 14px 0 0; font-size: 16px; line-height: 1.4; color: rgba(200, 235, 240, .6); word-break: keep-all; }
 #a11y-btns { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
 #a11y-btns button { height: 48px; padding: 0 22px; cursor: pointer; font-family: var(--font-title); font-weight: 600; font-size: 20px; color: #fafafa; background: rgb(10, 25, 45); border: 2px solid #5fd4e0; border-radius: 14px; }
@@ -966,6 +969,7 @@ var PIECES = [
 ];
 // 화면 크기: 아이폰 인앱 브라우저는 처음 열 때 innerHeight 가 아래 도구막대 뒤까지 포함한 큰 값이라 화면이 아래로 치우쳐 뜸(새로고침하면 정상). 실제로 보이는 영역(visualViewport)이 더 작으면 그 값을 씀. 글자를 입력하는 중에는 키보드 때문에 줄어든 값을 쓰지 않음
 var IS_IPHONE = /iPhone|iPod/.test(navigator.userAgent);   // 아이폰: 링 그림과 호 회전 때문에 분석 화면이 멈추고, 소리가 끊겨(틱) 들려서 이 기기에서만 가볍게 처리
+if (IS_IPHONE) document.documentElement.classList.add('is-iphone');   // 아이폰만 CSS 로 가볍게 처리할 때 쓰는 표시
 function viewSize() {
   var w = innerWidth, h = innerHeight, vv = window.visualViewport, ae = document.activeElement;
   var typing = !!(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA'));
@@ -2600,8 +2604,7 @@ var Board = (function () {
     var orb = document.createElement('div'); orb.id = 'board-ana-orb'; pop.appendChild(orb);
     var rbox = document.createElement('div'); rbox.className = 'ana-ringbox';
     var glow = document.createElement('div'); glow.className = 'ana-ringglow'; rbox.appendChild(glow); if (LT('glow')) glow.style.display = 'none';
-    if (IS_IPHONE) { if (!LT('rings')) rbox.insertAdjacentHTML('beforeend', '<div class="ana-cssring r1"></div><div class="ana-cssring r2"></div><div class="ana-cssring r3"></div><div class="ana-cssarc a1"></div><div class="ana-cssarc a2"></div>'); }
-    else if (!LT('svg')) rbox.insertAdjacentHTML('beforeend', anaRingSvg() + anaArcSvg(110, '134.38 96') + anaArcSvg(116, '141.7 101.2'));
+    if (!LT('svg')) rbox.insertAdjacentHTML('beforeend', anaRingSvg() + anaArcSvg(110, '134.38 96') + anaArcSvg(116, '141.7 101.2'));
     orb.appendChild(rbox);
     var arcs = rbox.querySelectorAll('.ana-arcsvg, .ana-cssarc');
     var disc = document.createElement('div'); disc.className = 'ana-disc'; orb.appendChild(disc);
