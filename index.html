@@ -7,7 +7,36 @@
 <link rel="icon" href="data:,">
 <title>타임 패트롤: 서임권 투쟁</title>
 <script>
-window.LT = function () { return false; }; window.BC = function () {};   // 진단 기능은 껐음 (호출부는 그대로 둠)
+/* DEBUG-BC (임시 진단): 아이폰에서 최종 제출 때 새로고침되는 지점을 찾기 위한 기록. 이 탭의 sessionStorage 에만 남고 어디로도 전송되지 않음. 원인을 찾으면 지움 */
+(function () {
+  var K = 'tp_bc', arr = [], t0 = performance.now();
+  try {
+    var prev = sessionStorage.getItem(K);
+    if (prev) {
+      sessionStorage.removeItem(K);
+      var lines = JSON.parse(prev);
+      document.addEventListener('DOMContentLoaded', function () {
+        var d = document.createElement('div');
+        d.style.cssText = 'position:fixed;left:4px;top:4px;z-index:99999;max-width:94vw;padding:6px 8px;background:rgba(0,0,0,.85);color:#ffd54a;font:11px/1.35 monospace;white-space:pre-wrap;border-radius:6px';
+        d.textContent = '[이전 실행 기록 - 화면을 누르면 닫힘]' + String.fromCharCode(10) + lines.join(String.fromCharCode(10));
+        d.addEventListener('click', function () { d.remove(); });
+        document.body.appendChild(d);
+      });
+    }
+  } catch (e) {}
+  var LITE = ((location.search.match(/[?&]lite=([^&]*)/) || [])[1] || '');
+  window.LITE = LITE; window.LT = function (k) { return LITE === 'all' || LITE.split(',').indexOf(k) >= 0; };   // ?lite=svg,glow,bob,hum,fade,dots,rot 또는 ?lite=all : 분석 화면의 해당 부분만 끄고 시험 (원인 찾기용)
+  window.BC = function (s) {
+    try { arr.push(Math.round(performance.now() - t0) + ' ' + s); if (arr.length > 16) arr.shift(); sessionStorage.setItem(K, JSON.stringify(arr)); } catch (e) {}
+  };
+  addEventListener('pagehide', function () { window.BC('pagehide'); });
+  document.addEventListener('visibilitychange', function () { window.BC('vis:' + document.visibilityState); });
+  document.addEventListener('focusin', function (e) { window.BC('focusin:' + (e.target.id || e.target.tagName)); });
+  document.addEventListener('focusout', function (e) { window.BC('focusout:' + (e.target.id || e.target.tagName)); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { window.BC('vv:' + Math.round(window.visualViewport.height)); });
+  window.BC('load');
+  addEventListener('error', function (e) { window.BC('error:' + String(e.message).slice(0, 60)); });
+})();
 </script>
 <style>
 @font-face {
@@ -1930,8 +1959,8 @@ var Board = (function () {
     var s = im.style;   // 위치·크기는 배경 원본(2752x1536) 대비 퍼센트. cx·cy 는 조각의 보이는 부분 중심이 놓일 곳
     s.width = (p.w / PIECE_SHEET.w * 100) + '%'; s.height = (p.h / PIECE_SHEET.h * 100) + '%';
     s.left = (p.x / PIECE_SHEET.w * 100) + '%'; s.top = (p.y / PIECE_SHEET.h * 100) + '%';
-    var rnd = function (a, b) { return a + Math.random() * (b - a); };   // 조각마다 조금씩 다르게: 움직이는 폭 1.3~1.8배, 회전 1.3~1.8배, 속도 1.25~1.7배(주기는 짧게)
-    s.setProperty('--dx', (p.dx * rnd(1.3, 1.8)).toFixed(1) + 'px'); s.setProperty('--dy', (p.dy * rnd(1.3, 1.8)).toFixed(1) + 'px'); s.setProperty('--rot', (p.rot * rnd(1.3, 1.8)).toFixed(2) + 'deg');
+    var rnd = function (a, b) { return a + Math.random() * (b - a); };   // 조각마다 조금씩 다르게: 움직이는 폭 1.2~1.5배, 회전 1.2~1.6배, 속도 1.25~1.7배(주기는 짧게)
+    s.setProperty('--dx', (p.dx * rnd(1.2, 1.5)).toFixed(1) + 'px'); s.setProperty('--dy', (p.dy * rnd(1.2, 1.5)).toFixed(1) + 'px'); s.setProperty('--rot', (p.rot * rnd(1.2, 1.6)).toFixed(2) + 'deg');
     s.setProperty('--dur', (p.dur / rnd(1.25, 1.7)).toFixed(2) + 's'); s.setProperty('--delay', p.delay + 's');
     bg.appendChild(im);
   });
