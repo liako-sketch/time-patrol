@@ -203,6 +203,10 @@ button { font-family: var(--font-title); font-weight: 600; }
 /* 안쪽: 이후 흔들림 연출용 */
 #board-shaker { position: absolute; inset: 0; }
 #board-bg { position: absolute; top: 0; height: 100%; background: url('images/back/back_2.webp') center / 100% 100% no-repeat; will-change: transform; }   /* 빈 배경(back_2). 조각은 아래 .board-piece 가 이 위에 따로 얹힘 */
+#board-ana .ana-cssring { position: absolute; border-radius: 50%; box-sizing: border-box; pointer-events: none; }   /* 아이폰용 링: SVG 대신 테두리 원 (같은 색 변화) */
+#board-ana .ana-cssring.r1 { inset: 4px; border: 1.5px solid currentColor; opacity: .75; }
+#board-ana .ana-cssring.r2 { inset: 37px; border: 1px solid currentColor; opacity: .35; }
+#board-ana .ana-cssring.r3 { inset: 12px; border: 3px dashed currentColor; opacity: .4; }
 #board-scene.board-dragging .board-piece { animation-play-state: paused; }
 .board-piece { position: absolute; margin: 0; pointer-events: none; user-select: none; -webkit-user-drag: none; will-change: transform;
   animation: board-float var(--dur, 10s) ease-in-out var(--delay, 0s) infinite alternate; }
@@ -958,6 +962,7 @@ var PIECES = [
   { n: 7, w: 377, h: 340, x: 2375, y: 474, dx: 6, dy: 12, rot: 1, dur: 8.33, delay: -7 }   // 성벽
 ];
 // 화면 크기: 아이폰 인앱 브라우저는 처음 열 때 innerHeight 가 아래 도구막대 뒤까지 포함한 큰 값이라 화면이 아래로 치우쳐 뜸(새로고침하면 정상). 실제로 보이는 영역(visualViewport)이 더 작으면 그 값을 씀. 글자를 입력하는 중에는 키보드 때문에 줄어든 값을 쓰지 않음
+var IS_IPHONE = /iPhone|iPod/.test(navigator.userAgent);   // 아이폰: 링 그림과 호 회전 때문에 분석 화면이 멈추고, 소리가 끊겨(틱) 들려서 이 기기에서만 가볍게 처리
 function viewSize() {
   var w = innerWidth, h = innerHeight, vv = window.visualViewport, ae = document.activeElement;
   var typing = !!(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA'));
@@ -1335,7 +1340,8 @@ var SFX = {
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     try {
-      var ctx = new AC();
+      var ctx;
+      try { ctx = IS_IPHONE ? new AC({ latencyHint: 'playback' }) : new AC(); } catch (_) { ctx = new AC(); }   // 아이폰: 소리가 끊겨 틱으로 들려서 버퍼를 넉넉하게(약간 늦게 나오는 대신 안정)
       var comp = ctx.createDynamicsCompressor();          // 갑자기 커지는 소리를 눌러 주는 리미터 역할
       comp.threshold.value = AUDIO.limiterThreshold; comp.knee.value = 12; comp.ratio.value = 12;
       comp.attack.value = 0.003; comp.release.value = 0.12;
@@ -2591,7 +2597,8 @@ var Board = (function () {
     var orb = document.createElement('div'); orb.id = 'board-ana-orb'; pop.appendChild(orb);
     var rbox = document.createElement('div'); rbox.className = 'ana-ringbox';
     var glow = document.createElement('div'); glow.className = 'ana-ringglow'; rbox.appendChild(glow); if (LT('glow')) glow.style.display = 'none';
-    if (!LT('svg')) rbox.insertAdjacentHTML('beforeend', anaRingSvg() + anaArcSvg(110, '134.38 96') + anaArcSvg(116, '141.7 101.2'));
+    if (IS_IPHONE) rbox.insertAdjacentHTML('beforeend', '<div class="ana-cssring r1"></div><div class="ana-cssring r2"></div><div class="ana-cssring r3"></div>');
+    else if (!LT('svg')) rbox.insertAdjacentHTML('beforeend', anaRingSvg() + anaArcSvg(110, '134.38 96') + anaArcSvg(116, '141.7 101.2'));
     orb.appendChild(rbox);
     var arcs = rbox.querySelectorAll('.ana-arcsvg');
     var disc = document.createElement('div'); disc.className = 'ana-disc'; orb.appendChild(disc);
@@ -2658,7 +2665,7 @@ var Board = (function () {
         var an = p[0].animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: secs * 1000, iterations: Infinity, direction: p[1] < 0 ? 'reverse' : 'normal' });
         spinAnims.push(an); anims.push(an);
       });
-      if (!LT('rot')) raf = requestAnimationFrame(frame);   // 호 회전은 모션 줄이기와 관계없이 항상 돎 (요청에 따라 예외)
+      if (!IS_IPHONE && !LT('rot')) raf = requestAnimationFrame(frame);   // 호 회전은 모션 줄이기와 관계없이 항상 돎 (요청에 따라 예외)
       // 정리·닫기
       function cleanup() {
         alive = false; cancelAnimationFrame(raf); timers.forEach(function (t) { clearTimeout(t); clearInterval(t); });
