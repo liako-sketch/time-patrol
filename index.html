@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <link rel="icon" href="data:,">
 <title>타임 패트롤: 서임권 투쟁</title>
@@ -116,7 +116,7 @@ button { font-family: var(--font-title); font-weight: 600; }
 #intro-yes:hover, #intro-yes:focus-visible { box-shadow: 0 0 34px rgba(95, 212, 224, 0.7); outline: none; }
 @media (prefers-reduced-motion: reduce) { #intro-yes, #intro-yes.intro-on { transition: none; } }
 #intro-namePanel {
-  position: absolute; left: 600px; top: 548px; width: 1100px; box-sizing: border-box; display: none;   /* 안내가 입력창 위로 올라간 만큼 틀을 위로 늘려 입력창·확인 버튼 위치는 그대로 */
+  position: absolute; left: 600px; bottom: 405px; width: 1100px; box-sizing: border-box; display: none;   /* 안내가 입력창 위로 올라간 만큼 틀을 위로 늘려 입력창·확인 버튼 위치는 그대로 */
   padding: 16px 24px 12px; background: rgba(10, 25, 45, 0.88); border: 2px solid #5fd4e0;
   border-radius: 16px; box-shadow: 0 0 18px rgba(95, 212, 224, 0.3);
 }
@@ -176,6 +176,7 @@ button { font-family: var(--font-title); font-weight: 600; }
 /* 안쪽: 이후 흔들림 연출용 */
 #board-shaker { position: absolute; inset: 0; }
 #board-bg { position: absolute; top: 0; height: 100%; background: url('images/back/back_2.webp') center / 100% 100% no-repeat; will-change: transform; }   /* 빈 배경(back_2). 조각은 아래 .board-piece 가 이 위에 따로 얹힘 */
+#board-scene.board-dragging .board-piece { animation-play-state: paused; }
 .board-piece { position: absolute; margin: 0; pointer-events: none; user-select: none; -webkit-user-drag: none; will-change: transform;
   animation: board-float var(--dur, 10s) ease-in-out var(--delay, 0s) infinite alternate; }
 @keyframes board-float {   /* 아주 느린 둥둥: 위아래·좌우 소폭 + 아주 작은 회전 (transform 만) */
@@ -191,7 +192,7 @@ button { font-family: var(--font-title); font-weight: 600; }
   background: rgba(10, 24, 52, 0.55);
   border: 2px solid rgba(120, 220, 230, 0.55);
   box-shadow: inset 0 0 40px rgba(90, 210, 225, 0.16), 0 0 18px rgba(60, 180, 200, 0.12);
-  transition: background .15s, border-color .15s, box-shadow .15s, opacity .5s;
+  transition: opacity .5s;   /* 배경·테두리·그림자는 바로 바뀜 (큰 그림자를 매 프레임 다시 그리지 않도록) */
 }
 .board-slot.board-empty { border: 2px dashed rgba(150, 225, 235, 0.28); }
 .board-slot.board-empty::after {
@@ -392,8 +393,8 @@ button { font-family: var(--font-title); font-weight: 600; }
 #board-comm.board-noting #board-bubble, #board-comm.board-noting #board-portrait { pointer-events: auto; cursor: pointer; }
 
 #board-tools { position: absolute; top: 24px; right: 24px; z-index: 99; display: flex; gap: 8px; }
-#board-tools button { font: 600 13px var(--font-title); color: #cfeff3;
-  background: rgba(10, 30, 50, .45); border: 1px solid rgba(150, 225, 235, .35); border-radius: 8px; padding: 6px 12px; cursor: pointer; opacity: .55; }
+#board-tools button { font: 600 20px var(--font-title); color: #cfeff3;
+  background: rgba(10, 30, 50, .45); border: 1.5px solid rgba(150, 225, 235, .35); border-radius: 10px; padding: 7px 16px; cursor: pointer; opacity: .55; }
 #board-tools button:hover { opacity: 1; }
 #board-tools button:disabled, #board-tools button:disabled:hover { opacity: .25; cursor: default; }
 
@@ -1523,9 +1524,10 @@ var Intro = (function () {
   var waiting = false, fast = false, idx = 0, typing = false, timer = null, codename = '', active = false, shakeTimer = null;
 
   // ===== 무대 비율 =====
+  var kbShift = 0;   // 키보드가 입력창을 가릴 때 화면을 위로 올리는 양(px). 키보드가 없으면 0
   function fit() {
     var s = Math.min(innerWidth / 1920, innerHeight / 1080);
-    stage.style.transform = 'translate(' + ((innerWidth - 1920 * s) / 2) + 'px,' + ((innerHeight - 1080 * s) / 2) + 'px) scale(' + s + ')';
+    stage.style.transform = 'translate(' + ((innerWidth - 1920 * s) / 2) + 'px,' + ((innerHeight - 1080 * s) / 2 - kbShift) + 'px) scale(' + s + ')';
   }
   addEventListener('resize', fit);
   fit();
@@ -1723,6 +1725,17 @@ var Intro = (function () {
     return false;
   }
 
+  // 키보드가 올라와 이름 입력창을 가리면(키보드가 화면 위에 겹치는 브라우저) 입력창이 보일 만큼만 화면을 올림
+  // 카카오톡처럼 키보드 때문에 화면 크기 자체가 줄어드는 브라우저는 기존처럼 화면이 줄어들어 보임(이 코드는 개입하지 않음)
+  function updateKb() {
+    var vv = window.visualViewport, want = 0;
+    if (vv && panel.style.display === 'block' && document.activeElement === input) {
+      var r = panel.getBoundingClientRect(), bottom0 = r.bottom + kbShift, top0 = r.top + kbShift;
+      want = Math.max(0, bottom0 + 12 - (vv.offsetTop + vv.height));
+      want = Math.min(want, Math.max(0, top0 - 8));
+    }
+    if (Math.abs(want - kbShift) > 1) { kbShift = want; fit(); }
+  }
   var nameBtn = $('intro-nameBtn');
   function submitName() {
     if (typing || input.disabled) return;
@@ -1761,6 +1774,9 @@ var Intro = (function () {
   });
   bind(yesBtn, 'click', function (e) { e.stopPropagation(); advance(true); yesBtn.blur(); });   // Enter·터치와 같은 진행 (효과음도 advance 안에서 기존 소리)
   bind($('intro-nameBtn'), 'click', function (e) { e.stopPropagation(); submitName(); });
+  bind(input, 'focus', function () { setTimeout(updateKb, 250); });
+  bind(input, 'blur', function () { if (kbShift) { kbShift = 0; fit(); } });
+  if (window.visualViewport) { bind(window.visualViewport, 'resize', updateKb); bind(window.visualViewport, 'scroll', updateKb); }
   bind(input, 'keydown', function (e) { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submitName(); } });
   bind(panel, 'click', function (e) { e.stopPropagation(); });
   bind(orb, 'click', function (e) {
@@ -1780,6 +1796,7 @@ var Intro = (function () {
     active = false;
     binds.forEach(function (b) { b[0].removeEventListener(b[1], b[2], b[3]); });
     clearTimeout(timer); clearTimeout(shakeTimer);
+    if (kbShift) { kbShift = 0; fit(); }
     stopShake();
     typing = false; yesBtn.classList.remove('intro-on'); clearTimeout(panelDelay);
     orb.classList.remove('intro-pulse', 'intro-active');
@@ -1885,8 +1902,7 @@ var Board = (function () {
     stage.style.transform = 'translate(' + offX + 'px,' + offY + 'px) scale(' + scale + ')';
     var fs = $('board-auditFrame').style;   // 서술 화면 가장자리 틈 가림 틀: 무대 경계에서 2px 바깥
     fs.left = (offX - 2) + 'px'; fs.top = (offY - 2) + 'px'; fs.width = (L.stageW * scale + 4) + 'px'; fs.height = (L.stageH * scale + 4) + 'px';
-    var ts = $('board-tools').style;   // 재배치 버튼: 무대 바깥(창 기준)에 있으므로 무대 안쪽 오른쪽 위 모서리(여백 24px, 무대 기준)로 맞춤. 크기는 그대로
-    ts.right = (offX + 24 * scale) + 'px'; ts.top = (offY + 24 * scale) + 'px';
+    $('board-stage').appendChild($('board-tools'));   // 재배치 버튼도 전체화면·접근성 버튼처럼 무대 안으로(무대와 같은 비율). 팝업이 뜨면 팝업 아래로 가려짐
   }
   addEventListener('resize', fit); fit();
   // 브라우저가 overflow:hidden 요소를 임의로 스크롤하는 것 방지
@@ -3005,6 +3021,7 @@ var Board = (function () {
       if (wasZoom) { var zw = L.cardW * L.zoomScale, zh = L.cardH * L.zoomScale; b = { x: c.x + c.w / 2 - zw / 2, y: c.y + c.h / 2 - 120 - zh / 2, w: zw, h: zh }; }
       var u = Math.max(0, Math.min(1, (drag.sx - b.x) / b.w)), v = Math.max(0, Math.min(1, (drag.sy - b.y) / b.h));
       drag.gx = u * L.cardW; drag.gy = v * L.cardH;
+      sceneEl.classList.add('board-dragging');   // 끄는 동안 배경 조각 둥둥·토리 링 회전을 잠시 멈춰 부담을 줄임
       drag.active = true; drag.near = -1; drag.from = c.where;   // 집은 자리(손패 또는 칸 번호)를 기억 → 교환·복귀에 씀
       SFX.play('pickup');
       var vb = curBox(c); if (c._fa) { c._fa.cancel(); c._fa = null; } setBox(c, vb.x, vb.y, vb.w, vb.h);
@@ -3032,7 +3049,7 @@ var Board = (function () {
     drag.tap = null; drag.tapMoved = false;
     if (drag.raf) { cancelAnimationFrame(drag.raf); drag.raf = 0; }
     var wasBg = drag.bgScroll;
-    drag.pid = null; drag.active = false; drag.bgScroll = false;
+    drag.pid = null; drag.active = false; drag.bgScroll = false; sceneEl.classList.remove('board-dragging');
     if (wasBg && !cancel && !document.documentElement.classList.contains('calm-mode') && e.timeStamp - drag.lt < 80 && Math.abs(drag.sv) > 60) {   // 움직이다 바로 놓았을 때만 관성 (멈춰 있다 놓으면 없음, 움직임 줄이기가 켜지면 없음)
       scrollVel = Math.max(-L.inertiaMaxSpeed, Math.min(L.inertiaMaxSpeed, drag.sv));
     }
@@ -3097,7 +3114,7 @@ var Board = (function () {
   function loop(t) {
     if (!active) { looping = false; return; }
     var dt = Math.min(0.05, (t - last) / 1000); last = t;
-    Comm.frame(dt);
+    if (!drag.active) Comm.frame(dt);
     if (drag.pid === null && scrollVel) {      // 배경 끌기 관성: 속도가 지수로 줄어듦, 끝에 닿으면 멈춤
       var np = scrollPos + scrollVel * dt;
       if (np <= 0 || np >= maxScroll) { np = Math.max(0, Math.min(maxScroll, np)); scrollVel = 0; }
