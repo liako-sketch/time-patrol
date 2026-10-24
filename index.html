@@ -6,6 +6,31 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <link rel="icon" href="data:,">
 <title>타임 패트롤: 서임권 투쟁</title>
+<script>
+/* DEBUG-BC (임시 진단): 아이폰에서 최종 제출 때 새로고침되는 지점을 찾기 위한 기록. 이 탭의 sessionStorage 에만 남고 어디로도 전송되지 않음. 원인을 찾으면 지움 */
+(function () {
+  var K = 'tp_bc', arr = [], t0 = performance.now();
+  try {
+    var prev = sessionStorage.getItem(K);
+    if (prev) {
+      sessionStorage.removeItem(K);
+      var lines = JSON.parse(prev);
+      document.addEventListener('DOMContentLoaded', function () {
+        var d = document.createElement('div');
+        d.style.cssText = 'position:fixed;left:4px;top:4px;z-index:99999;max-width:94vw;padding:6px 8px;background:rgba(0,0,0,.85);color:#ffd54a;font:11px/1.35 monospace;white-space:pre-wrap;border-radius:6px';
+        d.textContent = '[이전 실행 기록 - 화면을 누르면 닫힘]' + String.fromCharCode(10) + lines.join(String.fromCharCode(10));
+        d.addEventListener('click', function () { d.remove(); });
+        document.body.appendChild(d);
+      });
+    }
+  } catch (e) {}
+  window.BC = function (s) {
+    try { arr.push(Math.round(performance.now() - t0) + ' ' + s); if (arr.length > 16) arr.shift(); sessionStorage.setItem(K, JSON.stringify(arr)); } catch (e) {}
+  };
+  addEventListener('pagehide', function () { window.BC('pagehide'); });
+  addEventListener('error', function (e) { window.BC('error:' + String(e.message).slice(0, 60)); });
+})();
+</script>
 <style>
 @font-face {
   font-family: 'ToriPromise';
@@ -965,6 +990,7 @@ var AUDIO = {
   confirmMix: { hit: 1, swell: 1, spark: 1 },         // 확인 버튼 등장음 층별 크기: 타격 / 울림 / 반짝임   // 소리 묶음별 음량 배율 (마스터 0.2975 에 곱해짐). tick = 토리 목소리, others = 그 외 모든 효과음(whoosh·thump·snap·hum 등). 숫자 하나로 다시 조절
   failMix: { hi: 1, lo: 1 },                          // 실패 팝업음 층별 크기: 첫 음 / 둘째(내려간) 음
   successMix: { arp: 1, low: 1, harm: 1 },            // 성공 팝업음 층별 크기: 3음 상승 / 한 옥타브 아래 받침 / 아주 작은 배음
+  lowCutHz: 120,       // 저음 컷(하이패스) 기준 Hz. 이어폰·헤드셋에서 낮은 울림(30~90Hz)이 커 보이는 것을 줄임. 폰·태블릿 스피커는 원래 이 아래를 못 내므로 거의 그대로. 높이면(150) 더 깎고, 낮추면(90) 덜 깎음. 0 이면 끔
   limiterMakeup: 1.4       // 리미터 뒤 보정 게인. threshold 를 올려 줄어든 전체 음량을 원래대로 되돌림 (다른 소리 음량 유지)
 };
 
@@ -1311,11 +1337,13 @@ var SFX = {
       safe.curve = curve; safe.oversample = '2x';
       var mute = ctx.createGain(); mute.gain.value = SFX.muted ? 0 : 1;   // 접근성 '소리 끄기': 모든 소리가 지나가는 맨 마지막 출구
       comp.connect(post); post.connect(safe); safe.connect(mute); mute.connect(ctx.destination);
-      var g = ctx.createGain(); g.gain.value = AUDIO.master * AUDIO.level.others; g.connect(comp);
-      var tg = ctx.createGain(); tg.gain.value = AUDIO.master * AUDIO.level.tick; tg.connect(comp);   // 토리 목소리 전용 출력 (같은 리미터를 거침)
+      // 저음 컷: 모든 소리(효과음·토리 목소리·허밍)가 리미터에 들어가기 전에 지나감. 낮은 울림이 리미터를 눌러 다른 소리까지 작아지는 것도 막음
+      var lowcut = ctx.createBiquadFilter(); lowcut.type = 'highpass'; lowcut.frequency.value = AUDIO.lowCutHz > 0 ? AUDIO.lowCutHz : 1; lowcut.Q.value = -3.01;   // 하이패스의 Q 는 dB 단위: -3.01dB = 평평한 버터워스 특성(올라온 혹 없음) lowcut.connect(comp);
+      var g = ctx.createGain(); g.gain.value = AUDIO.master * AUDIO.level.others; g.connect(lowcut);
+      var tg = ctx.createGain(); tg.gain.value = AUDIO.master * AUDIO.level.tick; tg.connect(lowcut);   // 토리 목소리 전용 출력 (같은 리미터를 거침)
       var len = ctx.sampleRate, buf = ctx.createBuffer(1, len, ctx.sampleRate), ch = buf.getChannelData(0);
       for (var i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
-      SFX.ctx = ctx; SFX.gain = g; SFX.tickGain = tg; SFX.comp = comp; SFX.post = post; SFX.safe = safe; SFX.mute = mute; SFX.noiseBuf = buf; SFX.gesture = true;
+      SFX.ctx = ctx; SFX.gain = g; SFX.tickGain = tg; SFX.comp = comp; SFX.post = post; SFX.safe = safe; SFX.mute = mute; SFX.lowcut = lowcut; SFX.noiseBuf = buf; SFX.gesture = true;
       SFX.revive(); if (ctx.resume) ctx.resume().catch(function () {});
     } catch (_) { SFX.ctx = null; }
   },
@@ -1727,12 +1755,20 @@ var Intro = (function () {
 
   // 키보드가 올라와 이름 입력창을 가리면(키보드가 화면 위에 겹치는 브라우저) 입력창이 보일 만큼만 화면을 올림
   // 카카오톡처럼 키보드 때문에 화면 크기 자체가 줄어드는 브라우저는 기존처럼 화면이 줄어들어 보임(이 코드는 개입하지 않음)
+  var baseH = innerHeight, coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  addEventListener('resize', function () { if (document.activeElement !== input) baseH = Math.max(baseH, innerHeight); });
   function updateKb() {
     var vv = window.visualViewport, want = 0;
-    if (vv && panel.style.display === 'block' && document.activeElement === input) {
-      var r = panel.getBoundingClientRect(), bottom0 = r.bottom + kbShift, top0 = r.top + kbShift;
-      want = Math.max(0, bottom0 + 12 - (vv.offsetTop + vv.height));
-      want = Math.min(want, Math.max(0, top0 - 8));
+    if (panel.style.display === 'block' && document.activeElement === input) {
+      var resized = innerHeight < baseH * 0.85;   // 브라우저가 키보드 때문에 화면 크기를 줄여 줌(카카오톡 등): 이 코드는 개입하지 않음
+      if (!resized) {
+        var r = panel.getBoundingClientRect(), bottom0 = r.bottom + kbShift, top0 = r.top + kbShift;
+        var visBottom = vv ? vv.offsetTop + vv.height : innerHeight;
+        // 키보드가 화면 위에 겹치는데 브라우저가 알려 주지 않는 경우(일부 안드로이드 브라우저): 터치 기기면 키보드가 화면 아래 절반쯤 가린다고 보고 올림
+        if (visBottom > innerHeight * 0.85 && coarse) visBottom = innerHeight * 0.5;
+        want = Math.max(0, bottom0 + 12 - visBottom);
+        want = Math.min(want, Math.max(0, top0 - 8));
+      }
     }
     if (Math.abs(want - kbShift) > 1) { kbShift = want; fit(); }
   }
@@ -1774,7 +1810,7 @@ var Intro = (function () {
   });
   bind(yesBtn, 'click', function (e) { e.stopPropagation(); advance(true); yesBtn.blur(); });   // Enter·터치와 같은 진행 (효과음도 advance 안에서 기존 소리)
   bind($('intro-nameBtn'), 'click', function (e) { e.stopPropagation(); submitName(); });
-  bind(input, 'focus', function () { setTimeout(updateKb, 250); });
+  bind(input, 'focus', function () { setTimeout(updateKb, 250); setTimeout(updateKb, 700); });
   bind(input, 'blur', function () { if (kbShift) { kbShift = 0; fit(); } });
   if (window.visualViewport) { bind(window.visualViewport, 'resize', updateKb); bind(window.visualViewport, 'scroll', updateKb); }
   bind(input, 'keydown', function (e) { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submitName(); } });
@@ -2563,7 +2599,7 @@ var Board = (function () {
   // 분석 대기 연출 한 번. 끝나면(화면이 닫힌 뒤) resolve. 정답이면 정답 연출까지, 아니면 대기만 하고 바로 닫음
   function runAnalysisSequence(g) {
     return new Promise(function (resolve) {
-      anaBuild(); var R = anaRefs, ok = !!(g && g.ok), still = anaStill(), t0 = performance.now(), timers = [], raf = 0, anims = [];
+      BC('ana:build'); anaBuild(); BC('ana:built'); var R = anaRefs, ok = !!(g && g.ok), still = anaStill(), t0 = performance.now(), timers = [], raf = 0, anims = [];
       var shrinkAnim = null, angles = R.spins.map(function () { return 0; }), accelAt = 0, fast = false, curMult = 1, alive = true, canSkip = false, closing = false;
       anaBusy = true; syncTools();
       function later(fn, ms) { var t = setTimeout(fn, ms); timers.push(t); return t; }
@@ -2576,7 +2612,7 @@ var Board = (function () {
       R.ells.forEach(function (e) { e.classList.remove('ana-hide'); });
       R.chat.style.transition = 'none'; R.chat.style.transform = 'scaleX(0)'; R.chat.style.opacity = '0'; R.chat.classList.remove('ana-show');
       R.txt.classList.remove('ana-off'); R.note.classList.remove('ana-off'); R.dots.textContent = '';
-      anaEl.classList.add('ana-on');
+      anaEl.classList.add('ana-on'); BC('ana:on');
       // 키보드는 연출 뒤 화면으로 새지 않게 막고, Enter 는 '정답!' 뒤 건너뛰기에만 사용
       function onKey(e) {
         e.stopPropagation(); e.preventDefault();
@@ -2586,12 +2622,13 @@ var Board = (function () {
       window.addEventListener('keydown', onKey, true); window.addEventListener('keyup', onKey, true);
       anaEl.addEventListener('click', onClick);
       try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (_) {}
-      SFX.humStart({ vol: 0.5 });   // 낮은 허밍(작게)
+      SFX.humStart({ vol: 0.5 }); BC('ana:hum');   // 낮은 허밍(작게)
       var dotN = 0; var dotIv = setInterval(function () { dotN = (dotN + 1) % 4; R.dots.textContent = '...'.slice(0, dotN); }, 450); timers.push(dotIv);
       // 원 테두리 회전 (모션 줄이기면 정지)
       var last = t0;
       function frame(now) {
         if (!alive) return;
+        if (!frame.n) { frame.n = 1; BC('ana:raf1'); }
         var dt = Math.min(0.05, (now - last) / 1000); last = now;
         if (fast) { var k = Math.min(1, (now - accelAt) / ANA_ACCEL_MS); curMult = 1 + (ANA_ACCEL_MULT - 1) * k * k; } else curMult += (1 - curMult) * (1 - Math.exp(-dt * 8));   // 결과가 나오면 원래 속도로 부드럽게 복귀
         var mult = curMult;
@@ -2605,12 +2642,12 @@ var Board = (function () {
         anims.forEach(function (a) { try { a.cancel(); } catch (_) {} });
         window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKey, true); anaEl.removeEventListener('click', onClick);
         Array.prototype.slice.call(anaEl.querySelectorAll('.ana-p')).forEach(function (p) { p.parentNode.removeChild(p); });
-        anaBusy = false; syncTools();
+        anaBusy = false; syncTools(); BC('ana:cleanup');
         if (anaEl && anaEl.parentNode) anaEl.parentNode.removeChild(anaEl);   // 다음 시행에 이전 상태가 남아 충돌하지 않도록 매번 새로 만듦
         anaEl = null; anaRefs = null;
       }
       function closeOut() {
-        if (closing) return; closing = true; canSkip = false;
+        if (closing) return; closing = true; canSkip = false; BC('ana:close');
         SFX.humStop(SFX.hum.fadeOut);
         anaEl.classList.remove('ana-on');                       // 0.3초 페이드아웃
         setTimeout(function () { cleanup(); resolve(); }, 320);
@@ -2618,7 +2655,7 @@ var Board = (function () {
       function skip() { if (!canSkip) return; closeOut(); }
       // 파티클: 원 좌우 바깥 가장자리(반지름 250 밖)에서 시작해 옆으로 퍼짐. 원 안은 침범하지 않음
       function particles() {
-        var colors = ['#5fd4e0', '#ffd54a', '#8ff3fa', '#ffd54a'], n = 64, i;
+        BC('ana:particles'); var colors = ['#5fd4e0', '#ffd54a', '#8ff3fa', '#ffd54a'], n = 64, i;
         for (i = 0; i < n; i++) {
           var p = document.createElement('span'); p.className = 'ana-p' + (i % 3 === 0 ? ' ana-star' : ''); p.style.background = colors[i % colors.length]; R.move.appendChild(p);
           var ang = (i % 2 ? 0 : Math.PI) + (Math.random() - 0.5) * 2.2, r0 = 276, r1 = 276 + 121 + Math.random() * 242;
@@ -2628,7 +2665,7 @@ var Board = (function () {
       var ANA_SLIDE_MS = 500, ANA_SLIDE_EASE = 'cubic-bezier(.4, 0, .3, 1)';   // 이동·펼침 공통: 아주 살짝 가속했다가 부드럽게 멈춤
       function moveAside() {   // 원이 왼쪽으로 옮겨 가는 것과 동시에, 원 안(왼쪽)에서부터 오른쪽으로 채팅이 뻗어 나옴 (모션 줄이기와 관계없이)
         if (ok) SFX.play('anaCorrect', AUDIO.level.anaCorrect);
-        R.ells.forEach(function (e) { e.classList.add('ana-hide'); });   // 링 글로우는 채팅 자리를 침범하지 않게 먼저 흐려짐
+        BC('ana:move'); R.ells.forEach(function (e) { e.classList.add('ana-hide'); });   // 링 글로우는 채팅 자리를 침범하지 않게 먼저 흐려짐
         R.move.style.transition = 'transform ' + ANA_SLIDE_MS + 'ms ' + ANA_SLIDE_EASE; R.chat.style.transition = 'transform ' + ANA_SLIDE_MS + 'ms ' + ANA_SLIDE_EASE + ', opacity .15s ease-out';
         void R.move.offsetWidth;
         R.move.style.transform = 'translateX(' + ANA_MOVE_X + 'px)'; R.chat.style.transform = 'scaleX(1)'; R.chat.style.opacity = '1';
@@ -2636,7 +2673,7 @@ var Board = (function () {
         later(closeOut, ANA_SLIDE_MS + (ok ? 2500 : 2000));   // 결과 창이 펼쳐진 뒤 성공 2.5초 / 실패 2초 (터치·Enter 로 건너뛸 수 없음)
       }
       function correctSequence() {
-        SFX.humStop(SFX.hum.fadeOut); fast = false;   // 가속 끝: 회전은 원래 속도로 복귀
+        BC('ana:result'); SFX.humStop(SFX.hum.fadeOut); fast = false;   // 가속 끝: 회전은 원래 속도로 복귀
         R.tori2.style.visibility = ''; R.tori.style.visibility = 'hidden'; R.tori3.style.visibility = 'hidden';   // 정답: 커지며 파티클이 터지는 장면부터 happy / 실패: sad
         if (ok) R.orb.classList.add('ana-green');   // 성공: 커지면서 원 테두리·링이 초록으로 (색 변화라 설정과 무관)
         if (!ok) R.orb.classList.add('ana-redden');   // 실패: 다시 커지면서 원 테두리·링이 붉어짐 (움직임이 아니라 색이므로 설정과 무관)
@@ -2658,6 +2695,7 @@ var Board = (function () {
       // 결과 연출은 (최소 대기 + 0.8초) 뒤에 시작하므로, 그보다 ANA_ACCEL_MS 앞서 가속 시작 (정답·실패 모두)
       function startAccel() {
         if (!alive || fast) return;
+        BC('ana:accel');
         fast = true; accelAt = performance.now(); SFX.play('anaRise', AUDIO.level.ana);
         if (!still) { shrinkAnim = R.pop.animate([{ transform: 'scale(1)' }, { transform: 'scale(' + (ok ? ANA_SHRINK_TO : ANA_SHRINK_TO * 0.85).toFixed(3) + ')' }], { duration: ANA_ACCEL_MS, easing: ok ? 'ease-in' : 'cubic-bezier(.55, 0, .35, 1)', fill: 'forwards' }); anims.push(shrinkAnim); }   // 길이 = 가속 구간(결과 연출 시작과 같은 때 끝남). 실패는 바닥에서 부드럽게 멈춤
       }
@@ -2675,8 +2713,9 @@ var Board = (function () {
   }
   function finalSubmit() {
     if (!subOpen || subGo.disabled || auditSent) return;
+    BC('submit');
     lastAnswer = auditInput.value;   // 성공 팝업의 키워드 세기에만 쓰고 닫을 때 지움
-    closeSub(); closeAudit();
+    closeSub(); closeAudit(); BC('closed');
     var g = gradeBoard();
     if (anaBusy) return;
     runAnalysisSequence(g).then(function () {   // 분석 대기 연출 뒤에 기존 흐름
@@ -2708,6 +2747,7 @@ var Board = (function () {
     try { document.activeElement.blur(); } catch (_) {}
   }
   function showFail(g) {
+    BC('res:fail');
     hintCount++;
     var list = [], i, c;
     for (i = 1; i <= ERR; i++) { c = occupant(i); if (c) { c.where = 'hand'; list.push(c); } }
@@ -2739,6 +2779,7 @@ var Board = (function () {
     closeRes(); closeCmp(); closeLnk();
   }
   function showSuccess() {
+    BC('res:ok');
     solveBoard();
     SFX.play('successShow', AUDIO.level.success);
     openRes('ok', 'images/tori/tori_' + TORI_POSES.happy + '.webp', '타임라인을 수정하는 데 성공했어요!', function (body) {
