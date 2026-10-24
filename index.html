@@ -2605,11 +2605,11 @@ var Board = (function () {
     var tori = document.createElement('img'); tori.id = 'board-ana-tori'; tori.alt = ''; tori.src = 'images/tori/tori_what.webp'; tori.draggable = false; disc.appendChild(tori);
     var tori2 = document.createElement('img'); tori2.id = 'board-ana-tori2'; tori2.alt = ''; tori2.draggable = false; tori2.style.visibility = 'hidden'; disc.appendChild(tori2);
     var tori3 = document.createElement('img'); tori3.id = 'board-ana-tori3'; tori3.alt = ''; tori3.draggable = false; tori3.style.visibility = 'hidden'; disc.appendChild(tori3);   // 검사 중(원이 작아지는 동안) 로딩 그림. 미리 불러 두고 보이기만 함   // 결과 표정(happy/sad)은 미리 불러 둔 이 그림을 겹쳐 두었다가 보이기만 함 (그림 교체 때 깜빡이거나 사라지는 것 방지)
-    if (LT('bob')) tori.style.animation = tori2.style.animation = tori3.style.animation = 'none';
+    if (IS_IPHONE || LT('bob')) tori.style.animation = tori2.style.animation = tori3.style.animation = 'none';
     var txt = document.createElement('p'); txt.id = 'board-ana-txt'; txt.appendChild(document.createTextNode('분석 중이에요')); var dots = document.createElement('span'); txt.appendChild(dots); anaEl.appendChild(txt);
     var note = document.createElement('p'); note.id = 'board-ana-note'; note.textContent = '개인정보로 보이는 부분은 가려서 분석해요.'; note.hidden = !ANA_SHOW_NOTE; anaEl.appendChild(note);
     var chat = document.createElement('div'); chat.id = 'board-ana-chat'; var ct = document.createElement('span'); ct.textContent = '성공!'; chat.appendChild(ct); move.insertBefore(chat, pop);   // 원과 함께 움직이도록 이동 층 안, 원(pop) 뒤에
-    if (LT('fade')) anaEl.style.transition = 'none';
+    if (IS_IPHONE || LT('fade')) anaEl.style.transition = 'none';
     $('board-shaker').appendChild(anaEl);
     // 회전 목록: [요소, 상대 속도(음수는 반대 방향)]
     anaRefs = { tori: tori, tori2: tori2, tori3: tori3, dim: dim, move: move, pop: pop, orb: orb, txt: txt, dots: dots, note: note, chat: chat, ells: [glow],
@@ -3753,7 +3753,7 @@ var A11y = (function () {
     if (!typing) { if (curY) setY(0); return; }
     var pan = vv.offsetTop || 0, r = ae.getBoundingClientRect();
     var bottom0 = r.bottom - curY, top0 = r.top - curY;                       // 이동이 없을 때의 입력칸 위치
-    var need = Math.max(0, bottom0 + MARGIN - (vv.height - TOOLBAR));          // 가려지는 만큼
+    var need = Math.max(0, bottom0 + MARGIN + (ae.tagName === 'TEXTAREA' ? 90 : 0) - (vv.height - TOOLBAR));          // 가려지는 만큼
     need = Math.min(need, Math.max(0, top0 - 8));                              // 입력칸 윗부분은 화면 밖으로 나가지 않게
     var y = Math.round(pan - need);
     if (Math.abs(y - curY) > 1) setY(y);
