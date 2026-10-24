@@ -2597,7 +2597,7 @@ var Board = (function () {
     var orb = document.createElement('div'); orb.id = 'board-ana-orb'; pop.appendChild(orb);
     var rbox = document.createElement('div'); rbox.className = 'ana-ringbox';
     var glow = document.createElement('div'); glow.className = 'ana-ringglow'; rbox.appendChild(glow); if (LT('glow')) glow.style.display = 'none';
-    if (IS_IPHONE) rbox.insertAdjacentHTML('beforeend', '<div class="ana-cssring r1"></div><div class="ana-cssring r2"></div><div class="ana-cssring r3"></div>');
+    if (IS_IPHONE) { if (!LT('rings')) rbox.insertAdjacentHTML('beforeend', '<div class="ana-cssring r1"></div><div class="ana-cssring r2"></div><div class="ana-cssring r3"></div>'); }
     else if (!LT('svg')) rbox.insertAdjacentHTML('beforeend', anaRingSvg() + anaArcSvg(110, '134.38 96') + anaArcSvg(116, '141.7 101.2'));
     orb.appendChild(rbox);
     var arcs = rbox.querySelectorAll('.ana-arcsvg');
@@ -3049,7 +3049,7 @@ var Board = (function () {
   }
   // 화상 키보드가 올라오면 아래 서술 영역을 위로 올리고 위쪽 사료 영역이 줄어듦
   function updateKeyboard() {
-    if (!auditOpen) return;
+    if (!auditOpen || IS_IPHONE) return;   // 아이폰은 아래 kbAssist 가 따로 처리
     var vv = window.visualViewport, kb = 0;
     if (vv) kb = Math.max(0, innerHeight - vv.height - vv.offsetTop - offY) / scale;
     auditEl.style.paddingBottom = kb > 20 ? kb + 'px' : '';
@@ -3455,12 +3455,8 @@ var Board = (function () {
         g1.style.transform = g2.style.transform = ''; glitchOff = 0;
       }, ms);
     }
-    function scheduleIdleGlitch() {
+    function scheduleIdleGlitch() {   // 5~7초마다 토리 링이 지직하며 튕기고 '치직' 소리가 나던 장식 효과는 뺌 (아이폰에서 오류처럼 보이고 틱 소리로 들려서)
       clearTimeout(idleTimer);
-      idleTimer = setTimeout(function () {
-        if (shown && !busy && !(reduceMq && reduceMq.matches)) { glitchRing(C.glitchMs, 3); SFX.play('glitchTick'); }
-        scheduleIdleGlitch();
-      }, C.glitchMinMs + Math.random() * (C.glitchMaxMs - C.glitchMinMs));
     }
 
     // 대사: 이전 것은 즉시 끊고 새로 타이핑. 글자에는 효과를 주지 않음
@@ -3745,6 +3741,27 @@ var A11y = (function () {
   window.addEventListener('keyup', function (e) { if (open) e.stopPropagation(); }, true);
   apply(read()); apply2(read2()); apply3(read3());
   return { set: setMode, setCalm: setCalm, setMute: setMute, mount: mount };
+})();
+
+// 아이폰 키보드: 입력칸을 누르면 브라우저(iOS)가 화면을 필요 이상으로 밀어 올림(이름 입력·서술형 모두). 그 밀림을 취소하고, 입력칸이 키보드·입력 도구 줄에 가려지는 만큼만 올림
+(function () {
+  if (!IS_IPHONE || !window.visualViewport) return;
+  var vv = window.visualViewport, box = document.getElementById('flow-viewport'), curY = 0, TOOLBAR = 56, MARGIN = 16;
+  function setY(y) { curY = y; box.style.transform = y ? 'translateY(' + y + 'px)' : ''; }
+  function assist() {
+    var ae = document.activeElement, typing = !!(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA'));
+    if (!typing) { if (curY) setY(0); return; }
+    var pan = vv.offsetTop || 0, r = ae.getBoundingClientRect();
+    var bottom0 = r.bottom - curY, top0 = r.top - curY;                       // 이동이 없을 때의 입력칸 위치
+    var need = Math.max(0, bottom0 + MARGIN - (vv.height - TOOLBAR));          // 가려지는 만큼
+    need = Math.min(need, Math.max(0, top0 - 8));                              // 입력칸 윗부분은 화면 밖으로 나가지 않게
+    var y = Math.round(pan - need);
+    if (Math.abs(y - curY) > 1) setY(y);
+  }
+  window.__kbAssist = assist;
+  vv.addEventListener('resize', assist); vv.addEventListener('scroll', assist);
+  document.addEventListener('focusin', function () { [60, 250, 600, 1000].forEach(function (ms) { setTimeout(assist, ms); }); });
+  document.addEventListener('focusout', function () { setTimeout(assist, 50); setTimeout(assist, 400); });
 })();
 
 // 화면 맞춤을 다시 하는 시점: 로드·복귀·회전·보이는 영역이 바뀔 때, 그리고 열린 직후 몇 번 (브라우저가 크기를 늦게 알려 주는 경우 대비)
