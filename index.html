@@ -38,6 +38,8 @@
   addEventListener('error', function (e) { window.BC('error:' + String(e.message).slice(0, 60)); });
 })();
 </script>
+<link rel="preload" href="fonts/April16th-Promise.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-4Regular.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 @font-face {
   font-family: 'ToriPromise';
@@ -1576,7 +1578,7 @@ var Intro = (function () {
   var orb = $('intro-orb');
 
   // 상태 (코드네임은 메모리 변수에만 보관)
-  var waiting = false, fast = false, idx = 0, typing = false, timer = null, codename = '', active = false, shakeTimer = null;
+  var fontWait = false, waiting = false, fast = false, idx = 0, typing = false, timer = null, codename = '', active = false, shakeTimer = null;
 
   // ===== 무대 비율 =====
   function fit() {
@@ -1747,7 +1749,13 @@ var Intro = (function () {
 
   function advance(viaYes) {   // viaYes === true: '네' 버튼으로 진행
     if (!active) return;
-    if (waiting) { show(0); return; }      // 시작 대기: 첫 입력은 '시작'으로만 동작 (다음 대사로 넘기지 않음)
+    if (waiting) {      // 시작 대기: 첫 입력은 '시작'으로만 동작 (다음 대사로 넘기지 않음). 토리 글꼴이 아직 안 왔으면 도착(최대 1.5초)을 기다렸다 시작해서, 대사가 기본 글꼴로 나왔다 바뀌는 일을 막음
+      if (fontWait) return;
+      if (!document.fonts || !document.fonts.check || document.fonts.check('20px ToriPromise')) { show(0); return; }
+      fontWait = true;
+      Promise.race([document.fonts.load('20px ToriPromise'), new Promise(function (r) { setTimeout(r, 1500); })]).catch(function () {}).then(function () { fontWait = false; if (active && waiting) show(0); });
+      return;
+    }
     if (typing) return;
     var item = SCRIPT[idx];
     if (item.yes && viaYes !== true) return;   // '네' 전용 대사는 버튼을 눌러야만 넘어감 (Enter·스페이스·말풍선 터치 무시)
