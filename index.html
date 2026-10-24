@@ -30,6 +30,11 @@
     try { arr.push(Math.round(performance.now() - t0) + ' ' + s); if (arr.length > 16) arr.shift(); sessionStorage.setItem(K, JSON.stringify(arr)); } catch (e) {}
   };
   addEventListener('pagehide', function () { window.BC('pagehide'); });
+  document.addEventListener('visibilitychange', function () { window.BC('vis:' + document.visibilityState); });
+  document.addEventListener('focusin', function (e) { window.BC('focusin:' + (e.target.id || e.target.tagName)); });
+  document.addEventListener('focusout', function (e) { window.BC('focusout:' + (e.target.id || e.target.tagName)); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { window.BC('vv:' + Math.round(window.visualViewport.height)); });
+  window.BC('load');
   addEventListener('error', function (e) { window.BC('error:' + String(e.message).slice(0, 60)); });
 })();
 </script>
@@ -2411,10 +2416,10 @@ var Board = (function () {
   }
   function submitAudit() {   // '제출하기': 바로 제출하지 않고 확인 팝업을 먼저 띄움
     if (auditSent || subOpen || auditInput.value.trim().length < AUDIT_MIN) return;
-    openSub();
+    BC('sub:click'); openSub();
   }
   function openSub() {
-    var noteEl = $('board-snote'); noteEl.textContent = '';
+    BC('sub:start'); var noteEl = $('board-snote'); noteEl.textContent = '';
     [SUB_NOTE_1, (AUDIT_ENDPOINT && AUDIT_SAVE_ANSWERS) ? SUB_NOTE_2_ON : SUB_NOTE_2_OFF].forEach(function (t, k) {
       var sp = document.createElement('span'), at = k === 0 ? t.indexOf(SUB_NOTE_1_GLOW) : -1;
       if (at >= 0) {   // 첫 줄의 지정 구절만 빛나는 글씨 (글자는 그대로 나눠 붙임)
@@ -2425,13 +2430,13 @@ var Board = (function () {
       } else sp.textContent = t;
       noteEl.appendChild(sp);
     });
-    subOpen = true; auditEl.inert = true;   // 뒤 서술 화면은 키보드로도 건드리지 못하게
-    try { document.activeElement.blur(); } catch (_) {}
+    BC('sub:note'); subOpen = true; auditEl.inert = true; BC('sub:inert');   // 뒤 서술 화면은 키보드로도 건드리지 못하게
+    try { document.activeElement.blur(); } catch (_) {} BC('sub:blur');
     var left = SUBMIT_WAIT_SEC;
     subGo.style.setProperty('--sub-wait', SUBMIT_WAIT_SEC + 's');   // 진행 표시줄 시간도 같은 값으로
     subGo.disabled = true; subGo.classList.remove('board-wait'); void subGo.offsetWidth; subGo.classList.add('board-wait');
     $('board-sgoLabel').textContent = '최종 제출 (' + left + ')';
-    subEl.classList.add('board-open');
+    subEl.classList.add('board-open'); BC('sub:open');
     clearInterval(subTimer);
     subTimer = setInterval(function () {
       left--;
@@ -2440,7 +2445,7 @@ var Board = (function () {
       $('board-sgoLabel').textContent = '최종 제출'; subGo.classList.remove('board-wait'); subGo.disabled = false;
       SFX.play('confirmShow', AUDIO.level.confirm);   // '타임라인 수정하기' 버튼이 나타날 때와 같은 소리
     }, 1000);
-    $('board-sback').focus({ preventScroll: true });
+    $('board-sback').focus({ preventScroll: true }); BC('sub:end');
   }
   function closeSub() {
     clearInterval(subTimer); subTimer = null;
