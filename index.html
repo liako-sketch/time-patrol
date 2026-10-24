@@ -24,6 +24,8 @@
       });
     }
   } catch (e) {}
+  var LITE = ((location.search.match(/[?&]lite=([^&]*)/) || [])[1] || '');
+  window.LITE = LITE; window.LT = function (k) { return LITE === 'all' || LITE.split(',').indexOf(k) >= 0; };   // ?lite=svg,glow,bob,hum,fade,dots,rot 또는 ?lite=all : 분석 화면의 해당 부분만 끄고 시험 (원인 찾기용)
   window.BC = function (s) {
     try { arr.push(Math.round(performance.now() - t0) + ' ' + s); if (arr.length > 16) arr.shift(); sessionStorage.setItem(K, JSON.stringify(arr)); } catch (e) {}
   };
@@ -1551,10 +1553,9 @@ var Intro = (function () {
   var waiting = false, fast = false, idx = 0, typing = false, timer = null, codename = '', active = false, shakeTimer = null;
 
   // ===== 무대 비율 =====
-  var kbShift = 0;   // 키보드가 입력창을 가릴 때 화면을 위로 올리는 양(px). 키보드가 없으면 0
   function fit() {
     var s = Math.min(innerWidth / 1920, innerHeight / 1080);
-    stage.style.transform = 'translate(' + ((innerWidth - 1920 * s) / 2) + 'px,' + ((innerHeight - 1080 * s) / 2 - kbShift) + 'px) scale(' + s + ')';
+    stage.style.transform = 'translate(' + ((innerWidth - 1920 * s) / 2) + 'px,' + ((innerHeight - 1080 * s) / 2) + 'px) scale(' + s + ')';
   }
   addEventListener('resize', fit);
   fit();
@@ -1752,25 +1753,6 @@ var Intro = (function () {
     return false;
   }
 
-  // 키보드가 올라와 이름 입력창을 가리면(키보드가 화면 위에 겹치는 브라우저) 입력창이 보일 만큼만 화면을 올림
-  // 카카오톡처럼 키보드 때문에 화면 크기 자체가 줄어드는 브라우저는 기존처럼 화면이 줄어들어 보임(이 코드는 개입하지 않음)
-  var baseH = innerHeight, coarse = !!((window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 0);   // 키보드 커버가 붙은 태블릿은 기본 포인터가 마우스로 잡히므로 터치 가능 여부도 봄
-  addEventListener('resize', function () { if (document.activeElement !== input) baseH = Math.max(baseH, innerHeight); });
-  function updateKb() {
-    var vv = window.visualViewport, want = 0;
-    if (panel.style.display === 'block' && document.activeElement === input) {
-      var resized = innerHeight < baseH * 0.85;   // 브라우저가 키보드 때문에 화면 크기를 줄여 줌(카카오톡 등): 이 코드는 개입하지 않음
-      if (!resized) {
-        var r = panel.getBoundingClientRect(), bottom0 = r.bottom + kbShift, top0 = r.top + kbShift;
-        var visBottom = vv ? vv.offsetTop + vv.height : innerHeight;
-        // 키보드가 화면 위에 겹치는데 브라우저가 알려 주지 않는 경우(일부 안드로이드 브라우저): 터치 기기면 키보드가 화면 아래 절반쯤 가린다고 보고 올림
-        if (visBottom > innerHeight * 0.85 && coarse) visBottom = innerHeight * 0.42;   // 키보드(와 위의 도구 줄)가 화면 아래 58%쯤 가린다고 보고 입력창을 그 위로 올림
-        want = Math.max(0, bottom0 + 12 - visBottom);
-        want = Math.min(want, Math.max(0, top0 - 8));
-      }
-    }
-    if (Math.abs(want - kbShift) > 1) { kbShift = want; fit(); }
-  }
   var nameBtn = $('intro-nameBtn');
   function submitName() {
     if (typing || input.disabled) return;
@@ -1809,9 +1791,6 @@ var Intro = (function () {
   });
   bind(yesBtn, 'click', function (e) { e.stopPropagation(); advance(true); yesBtn.blur(); });   // Enter·터치와 같은 진행 (효과음도 advance 안에서 기존 소리)
   bind($('intro-nameBtn'), 'click', function (e) { e.stopPropagation(); submitName(); });
-  bind(input, 'focus', function () { setTimeout(updateKb, 250); setTimeout(updateKb, 700); setTimeout(updateKb, 1300); });
-  bind(input, 'blur', function () { if (kbShift) { kbShift = 0; fit(); } });
-  if (window.visualViewport) { bind(window.visualViewport, 'resize', updateKb); bind(window.visualViewport, 'scroll', updateKb); }
   bind(input, 'keydown', function (e) { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submitName(); } });
   bind(panel, 'click', function (e) { e.stopPropagation(); });
   bind(orb, 'click', function (e) {
@@ -1831,7 +1810,6 @@ var Intro = (function () {
     active = false;
     binds.forEach(function (b) { b[0].removeEventListener(b[1], b[2], b[3]); });
     clearTimeout(timer); clearTimeout(shakeTimer);
-    if (kbShift) { kbShift = 0; fit(); }
     stopShake();
     typing = false; yesBtn.classList.remove('intro-on'); clearTimeout(panelDelay);
     orb.classList.remove('intro-pulse', 'intro-active');
@@ -2580,20 +2558,23 @@ var Board = (function () {
     var pop = document.createElement('div'); pop.className = 'ana-layer'; move.appendChild(pop);
     var orb = document.createElement('div'); orb.id = 'board-ana-orb'; pop.appendChild(orb);
     var rbox = document.createElement('div'); rbox.className = 'ana-ringbox';
-    var glow = document.createElement('div'); glow.className = 'ana-ringglow'; rbox.appendChild(glow);
-    rbox.insertAdjacentHTML('beforeend', anaRingSvg()); orb.appendChild(rbox);
+    var glow = document.createElement('div'); glow.className = 'ana-ringglow'; rbox.appendChild(glow); if (LT('glow')) glow.style.display = 'none';
+    if (!LT('svg')) rbox.insertAdjacentHTML('beforeend', anaRingSvg());
+    orb.appendChild(rbox);
     var arcs = rbox.querySelectorAll('.ana-arcs');
     var disc = document.createElement('div'); disc.className = 'ana-disc'; orb.appendChild(disc);
     var tori = document.createElement('img'); tori.id = 'board-ana-tori'; tori.alt = ''; tori.src = 'images/tori/tori_what.webp'; tori.draggable = false; disc.appendChild(tori);
     var tori2 = document.createElement('img'); tori2.id = 'board-ana-tori2'; tori2.alt = ''; tori2.draggable = false; tori2.style.visibility = 'hidden'; disc.appendChild(tori2);
     var tori3 = document.createElement('img'); tori3.id = 'board-ana-tori3'; tori3.alt = ''; tori3.draggable = false; tori3.style.visibility = 'hidden'; disc.appendChild(tori3);   // 검사 중(원이 작아지는 동안) 로딩 그림. 미리 불러 두고 보이기만 함   // 결과 표정(happy/sad)은 미리 불러 둔 이 그림을 겹쳐 두었다가 보이기만 함 (그림 교체 때 깜빡이거나 사라지는 것 방지)
+    if (LT('bob')) tori.style.animation = tori2.style.animation = tori3.style.animation = 'none';
     var txt = document.createElement('p'); txt.id = 'board-ana-txt'; txt.appendChild(document.createTextNode('분석 중이에요')); var dots = document.createElement('span'); txt.appendChild(dots); anaEl.appendChild(txt);
     var note = document.createElement('p'); note.id = 'board-ana-note'; note.textContent = '개인정보로 보이는 부분은 가려서 분석해요.'; note.hidden = !ANA_SHOW_NOTE; anaEl.appendChild(note);
     var chat = document.createElement('div'); chat.id = 'board-ana-chat'; var ct = document.createElement('span'); ct.textContent = '성공!'; chat.appendChild(ct); move.insertBefore(chat, pop);   // 원과 함께 움직이도록 이동 층 안, 원(pop) 뒤에
+    if (LT('fade')) anaEl.style.transition = 'none';
     $('board-shaker').appendChild(anaEl);
     // 회전 목록: [요소, 상대 속도(음수는 반대 방향)]
     anaRefs = { tori: tori, tori2: tori2, tori3: tori3, dim: dim, move: move, pop: pop, orb: orb, txt: txt, dots: dots, note: note, chat: chat, ells: [glow],
-      spins: [[arcs[0], 4 / 3], [arcs[1], -8 / 9]] };   // 기본 45도/초 기준: 6초 한 바퀴(시계), 9초 한 바퀴(반시계)
+      spins: arcs.length > 1 ? [[arcs[0], 4 / 3], [arcs[1], -8 / 9]] : [] };   // 기본 45도/초 기준: 6초 한 바퀴(시계), 9초 한 바퀴(반시계)
   }
   // 분석 대기 연출 한 번. 끝나면(화면이 닫힌 뒤) resolve. 정답이면 정답 연출까지, 아니면 대기만 하고 바로 닫음
   function runAnalysisSequence(g) {
@@ -2621,8 +2602,10 @@ var Board = (function () {
       window.addEventListener('keydown', onKey, true); window.addEventListener('keyup', onKey, true);
       anaEl.addEventListener('click', onClick);
       try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (_) {}
-      SFX.humStart({ vol: 0.5 }); BC('ana:hum');   // 낮은 허밍(작게)
-      var dotN = 0; var dotIv = setInterval(function () { dotN = (dotN + 1) % 4; R.dots.textContent = '...'.slice(0, dotN); }, 450); timers.push(dotIv);
+      if (!LT('hum')) SFX.humStart({ vol: 0.5 }); BC('ana:hum');
+      [100, 300, 600, 1000, 2000, 3000].forEach(function (ms) { later(function () { BC('hb' + ms + ' fr=' + (frame.c || 0)); }, ms); });   // 시간이 지난 뒤에도 살아 있는지, 그때까지 화면이 몇 번 갱신됐는지   // 낮은 허밍(작게)
+      var dotN = 0, dotIv = null;
+      if (!LT('dots')) { dotIv = setInterval(function () { dotN = (dotN + 1) % 4; R.dots.textContent = '...'.slice(0, dotN); }, 450); timers.push(dotIv); }
       // 원 테두리 회전 (모션 줄이기면 정지)
       var last = t0;
       function frame(now) {
@@ -2635,7 +2618,7 @@ var Board = (function () {
         R.spins.forEach(function (p, i) { angles[i] = (angles[i] + ANA_SPIN_BASE * p[1] * mult * dt) % 360; p[0].setAttribute('transform', 'rotate(' + angles[i].toFixed(1) + ' 118 118)'); });   // SVG 속성 방식(토리 프로필 링과 같은 방식)
         raf = requestAnimationFrame(frame);
       }
-      raf = requestAnimationFrame(frame);   // 호 회전은 모션 줄이기와 관계없이 항상 돎 (요청에 따라 예외)
+      if (!LT('rot')) raf = requestAnimationFrame(frame);   // 호 회전은 모션 줄이기와 관계없이 항상 돎 (요청에 따라 예외)
       // 정리·닫기
       function cleanup() {
         alive = false; cancelAnimationFrame(raf); timers.forEach(function (t) { clearTimeout(t); clearInterval(t); });
@@ -2713,7 +2696,7 @@ var Board = (function () {
   }
   function finalSubmit() {
     if (!subOpen || subGo.disabled || auditSent) return;
-    BC('submit');
+    BC('submit lite=' + (window.LITE || '-'));
     lastAnswer = auditInput.value;   // 성공 팝업의 키워드 세기에만 쓰고 닫을 때 지움
     closeSub(); closeAudit(); BC('closed');
     var g = gradeBoard();
