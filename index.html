@@ -47,7 +47,7 @@ window.LT = function () { return false; }; window.BC = function () {};   // 진�
   --hl-glow: rgba(255, 213, 74, .4);                  /* 같은 노랑 글로우 */
 }
 /* ===== 공통 ===== */
-html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+html, body { margin: 0; height: 100%; background: #000; overflow: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }   /* 사파리가 가로 화면에서 글자를 멋대로 키우지 않게 (설명 패널이 말풍선을 덮던 문제) */
 body { font-family: var(--font-body); font-weight: 400; }
 button { font-family: var(--font-title); font-weight: 600; }
 #flow-viewport { position: fixed; inset: 0; background: #000; overflow: hidden; }
@@ -1504,7 +1504,7 @@ var Intro = (function () {
   };
   var TYPE_MS = 40;
   // 인트로 첫 화면 안내: 글자 + 방향 화살표(인라인 SVG라 글꼴과 상관없이 안 깨짐). 화살표는 해당 위치 글자 바로 오른쪽 옆에 붙음 (버튼 위치와 맞출 것)
-  var WAIT_NOTE_PARTS = ['※ 대화 2배속(좌상단', 'ul', '), 전체화면(좌하단', 'dl', '), 접근성(우하단', 'dr', ')을 지원해요.'];
+  var WAIT_NOTE_PARTS = /iPhone|iPod/.test(navigator.userAgent) ? ['※ 대화 2배속(좌상단', 'ul', '), 접근성(우하단', 'dr', ')을 지원해요.'] : ['※ 대화 2배속(좌상단', 'ul', '), 전체화면(좌하단', 'dl', '), 접근성(우하단', 'dr', ')을 지원해요.'];   // 아이폰은 전체화면 버튼이 없어 안내에서 뺌
   var WAIT_ARROWS = { ul: 'M18 18L6 6M6 14V6h8', dl: 'M18 6L6 18M14 18H6v-8', dr: 'M6 6l12 12M18 10v8h-8' };   // ↖ ↙ ↘
 
   // 대사: {text, pose, action?, poseAt?: {문구: 포즈}}
@@ -1539,7 +1539,7 @@ var Intro = (function () {
     });
     // 아이폰은 웹페이지 전체화면을 지원하지 않으므로, 아이폰에서만 첫 화면에 한 줄 더 안내
     if (/iPhone|iPod/.test(navigator.userAgent)) {
-      var phoneNote = '※ 아이폰은 전체화면을 지원하지 않아요. 화면을 가로로 돌려서 해 주세요.';
+      var phoneNote = '※ 화면을 가로로 돌려서 해 주세요.';
       box.appendChild(document.createElement('br')); box.appendChild(document.createTextNode(phoneNote));
       box.setAttribute('aria-label', box.getAttribute('aria-label') + ' ' + phoneNote);
     }
@@ -2519,6 +2519,7 @@ var Board = (function () {
   var REAL_SOURCE_SRC = ['하인리히 4세가 그레고리우스 7세에게 한 서약 (사료를 바탕으로 재구성)', '자료: Fordham University, Internet Medieval Sourcebook'];
   // 바뀐 곳 강조: 문장별 구절 목록 (글자는 바꾸지 않고 감싸기만 함). 위조(붉은) / 원래(녹색)
   var REAL_IMAGE_SRC = 'images/card/card_R.webp';   // 원 사료 이미지 파일 (CARD_IMAGES_AVAILABLE 에도 같은 경로가 true 로 등록되어 있어야 보임. 파일이 없으면 자리표시자)
+  if (CARD_IMAGES_AVAILABLE[REAL_IMAGE_SRC]) { var realIm = new Image(); imageKeep.push(realIm); realIm.src = REAL_IMAGE_SRC; if (realIm.decode) realIm.decode().catch(function () {}); }   // 비교 창이 열릴 때 늦게 뜨지 않게 미리 불러 둠
   var BAD_MARKS = [['그레고리우스', '파문의 일로', '왕 하인리히에게 용서를 구하며'], ['저에게', '왕이 정한 기한'], ['왕이 독일이나 다른 땅을', '제가'], ['왕을 방해하는', '왕에게 맞서면']];
   var REAL_MARKS = [['하인리히'], ['저에게', '교황이 정한 기한'], ['교황이 독일이나 다른 땅을', '제가'], ['교황을 방해하는', '교황에게 맞서면']];
 
