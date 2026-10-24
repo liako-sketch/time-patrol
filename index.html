@@ -1338,7 +1338,7 @@ var SFX = {
       var mute = ctx.createGain(); mute.gain.value = SFX.muted ? 0 : 1;   // 접근성 '소리 끄기': 모든 소리가 지나가는 맨 마지막 출구
       comp.connect(post); post.connect(safe); safe.connect(mute); mute.connect(ctx.destination);
       // 저음 컷: 모든 소리(효과음·토리 목소리·허밍)가 리미터에 들어가기 전에 지나감. 낮은 울림이 리미터를 눌러 다른 소리까지 작아지는 것도 막음
-      var lowcut = ctx.createBiquadFilter(); lowcut.type = 'highpass'; lowcut.frequency.value = AUDIO.lowCutHz > 0 ? AUDIO.lowCutHz : 1; lowcut.Q.value = -3.01;   // 하이패스의 Q 는 dB 단위: -3.01dB = 평평한 버터워스 특성(올라온 혹 없음) lowcut.connect(comp);
+      var lowcut = ctx.createBiquadFilter(); lowcut.type = 'highpass'; lowcut.frequency.value = AUDIO.lowCutHz > 0 ? AUDIO.lowCutHz : 1; lowcut.Q.value = -3.01; lowcut.connect(comp);   // 하이패스의 Q 는 dB 단위: -3.01dB = 평평한 버터워스 특성(올라온 혹 없음)
       var g = ctx.createGain(); g.gain.value = AUDIO.master * AUDIO.level.others; g.connect(lowcut);
       var tg = ctx.createGain(); tg.gain.value = AUDIO.master * AUDIO.level.tick; tg.connect(lowcut);   // 토리 목소리 전용 출력 (같은 리미터를 거침)
       var len = ctx.sampleRate, buf = ctx.createBuffer(1, len, ctx.sampleRate), ch = buf.getChannelData(0);
