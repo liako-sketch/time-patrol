@@ -272,7 +272,7 @@ button { font-family: var(--font-title); font-weight: 600; }
   box-shadow: 0 4px 12px rgba(0,0,0,.45), 0 0 14px rgba(80, 225, 235, .28), inset 0 0 18px rgba(80, 225, 235, .12);
   transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
   display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; text-align: center;
-  will-change: transform; contain: layout style;
+  will-change: transform, translate; contain: layout style;
 }
 /* 모서리 장식선 (가는 ㄱ자 네 개) */
 .board-card::after { content: ''; position: absolute; inset: .22em; pointer-events: none; border-radius: 9px;
@@ -1699,7 +1699,7 @@ var Intro = (function () {
     panel.classList.remove('intro-pop'); void panel.offsetWidth; panel.classList.add('intro-pop');
     SFX.play('namePop', AUDIO.level.namePop);
     clearTimeout(popTimer);
-    popTimer = setTimeout(function () { if (active && !input.disabled && panel.style.display === 'block') input.focus(); }, 560);
+    popTimer = setTimeout(function () { if (active && !input.disabled && panel.style.display === 'block') input.focus({ preventScroll: true }); }, 560);   // 자동 포커스 때 브라우저가 화면을 밀어 올리지 않게
   }
   function finished(item) {
     if (item.action === 'askName') {
@@ -1757,7 +1757,7 @@ var Intro = (function () {
   function submitName() {
     if (typing || input.disabled) return;
     var v = input.value.trim();
-    if (!v) { err.textContent = '코드네임을 입력해 주세요.'; input.focus(); return; }
+    if (!v) { err.textContent = '코드네임을 입력해 주세요.'; input.focus({ preventScroll: true }); return; }
     if (looksPersonal(v)) {
       SFX.play('reject');
       err.textContent = '코드네임에 개인정보로 보이는 내용이 있어요. 다른 코드네임으로 다시 입력해 주세요.';
@@ -2081,7 +2081,8 @@ var Board = (function () {
 
   function setBox(c, x, y, w, h) {
     var st = c.el.style, ow = c.w, oh = c.h, ox = c.x, oy = c.y;
-    c.x = x; c.y = y; c.w = w; c.h = h;
+    c.x = x; c.y = y; c.w = w; c.h = h; c.sb = scrollPos;   // 이 자리가 정해질 때의 스크롤 위치
+    if (st.translate) st.translate = '';
     if (x !== ox || !st.left) st.left = x + 'px';
     if (y !== oy || !st.top) st.top = y + 'px';
     if (w !== ow || !st.width) { st.width = w + 'px'; st.fontSize = (w * 0.09) + 'px'; }   // 크기가 같으면 글자 크기도 다시 안 씀 (다시 계산·배치 줄임)
@@ -2096,13 +2097,14 @@ var Board = (function () {
   // mode: false 즉시 / true 부드럽게 / 'snap' 빠르게 붙고 살짝 튕김
   // 카드의 지금 보이는 상자 (이동 애니메이션 중이면 그 중간 위치)
   function curBox(c) {
+    var off = c.el.style.translate ? (c.sb - scrollPos) : 0;   // 스크롤 중 아직 확정 전인 가로 이동분
     if (c._fa && c._fa.playState === 'running') {
       try {
         var m = new DOMMatrix(getComputedStyle(c.el).transform);
-        return { x: c.x + m.e, y: c.y + m.f, w: c.w * m.a, h: c.h * m.d };
+        return { x: c.x + m.e + off, y: c.y + m.f, w: c.w * m.a, h: c.h * m.d };
       } catch (_) {}
     }
-    return { x: c.x, y: c.y, w: c.w, h: c.h };
+    return { x: c.x + off, y: c.y, w: c.w, h: c.h };
   }
   // 이동 애니메이션: 카드는 곧바로 새 자리에 놓고, 예전 자리에서 오는 모습을 transform 으로 보여 줌 (배치 계산 없이 그래픽만으로 움직임)
   function place(c, mode) {
@@ -2192,8 +2194,23 @@ var Board = (function () {
     $('board-edgeR').classList.toggle('board-on', scrollPos < maxScroll - 1);
     var tw = 600, th = Math.min(tw, tw * L.stageW / worldW), thumb = $('board-sbar').firstChild;
     thumb.style.width = th + 'px'; thumb.style.left = ((tw - th) * (maxScroll ? scrollPos / maxScroll : 0)) + 'px';
-    placeAll(false);
+    // 칸에 들어간 카드는 스크롤 중에 위치(left)를 다시 계산하지 않고 translate 로만 밀어 움직임 → 스크롤이 멈추면 한 번에 정확한 위치로 확정
+    var slid = false;
+    if (!CAN_TRANSLATE) placeAll(false);   // translate 를 지원하지 않는 오래된 브라우저는 예전처럼 매번 위치를 다시 계산
+    else for (var ci = 0; ci < cards.length; ci++) {
+      var kc = cards[ci];
+      if (kc.where !== 'hand' && !(revLayout && kc.revIdx != null) && !(kc === drag.card && drag.active)) { kc.el.style.translate = (kc.sb - scrollPos) + 'px 0px'; slid = true; }
+    }
+    clearTimeout(settleTimer);
+    if (slid) settleTimer = setTimeout(settleScroll, 160);
     if (drag.active) applyDrag();
+  }
+  var settleTimer = null, CAN_TRANSLATE = !!(window.CSS && CSS.supports && CSS.supports('translate', '0px 0px'));
+  function settleScroll() {   // 밀어 둔 카드들을 지금 스크롤 위치에 맞는 실제 위치로 확정
+    clearTimeout(settleTimer);
+    var dirty = false;
+    for (var ci = 0; ci < cards.length; ci++) if (cards[ci].el.style.translate) { dirty = true; break; }
+    if (dirty) placeAll(false);
   }
   // 좌표 변환
   function toStage(e) { return { x: (e.clientX - offX) / scale, y: (e.clientY - offY) / scale }; }
@@ -2243,6 +2260,7 @@ var Board = (function () {
   // ===== 사료 설명 패널: 카드 데이터를 받아 채움 (지금은 고정 카드 1번에만 연결) =====
   var detailEl = $('board-detail'), detailCard = null, detailTimer = null, litTimer = null, detailOpenedAt = 0;
   function openDetail(c) {
+    settleScroll();
     if (detailCard || !c.data) return;
     unzoom(true);
     var d = c.reveal || c.data, DETAIL_SCALE = 645 / c.h, cx = c.x + c.w / 2, cy = c.y + c.h / 2;
@@ -2546,9 +2564,12 @@ var Board = (function () {
         '" x2="' + (118 + r2 * Math.sin(a)).toFixed(2) + '" y2="' + (118 - r2 * Math.cos(a)).toFixed(2) +
         '" stroke="currentColor" stroke-width="1" stroke-opacity="' + (long ? 0.34 : 0.2) + '"/>';
     }
-    h += '<g class="ana-arcs"><circle cx="118" cy="118" r="110" fill="none" stroke="currentColor" stroke-width="3" stroke-opacity="0.7" stroke-linecap="round" stroke-dasharray="134.38 96"/></g>' +
-      '<g class="ana-arcs"><circle cx="118" cy="118" r="116" fill="none" stroke="currentColor" stroke-width="3" stroke-opacity="0.7" stroke-linecap="round" stroke-dasharray="141.7 101.2"/></g></svg>';
+    h += '</svg>';
     return h;
+  }
+  // 도는 호는 각각 따로 된 SVG 요소: 그림 안쪽을 매 프레임 다시 그리지 않고, 요소 전체를 회전 애니메이션으로 돌림 (아이폰에서 분석 화면이 새로고침되던 문제 대응)
+  function anaArcSvg(r, dash) {
+    return '<svg class="ana-ringsvg ana-arcsvg" viewBox="0 0 236 236" aria-hidden="true"><circle cx="118" cy="118" r="' + r + '" fill="none" stroke="currentColor" stroke-width="3" stroke-opacity="0.7" stroke-linecap="round" stroke-dasharray="' + dash + '"/></svg>';
   }
   function anaBuild() {
     if (anaEl) return;
@@ -2559,9 +2580,9 @@ var Board = (function () {
     var orb = document.createElement('div'); orb.id = 'board-ana-orb'; pop.appendChild(orb);
     var rbox = document.createElement('div'); rbox.className = 'ana-ringbox';
     var glow = document.createElement('div'); glow.className = 'ana-ringglow'; rbox.appendChild(glow); if (LT('glow')) glow.style.display = 'none';
-    if (!LT('svg')) rbox.insertAdjacentHTML('beforeend', anaRingSvg());
+    if (!LT('svg')) rbox.insertAdjacentHTML('beforeend', anaRingSvg() + anaArcSvg(110, '134.38 96') + anaArcSvg(116, '141.7 101.2'));
     orb.appendChild(rbox);
-    var arcs = rbox.querySelectorAll('.ana-arcs');
+    var arcs = rbox.querySelectorAll('.ana-arcsvg');
     var disc = document.createElement('div'); disc.className = 'ana-disc'; orb.appendChild(disc);
     var tori = document.createElement('img'); tori.id = 'board-ana-tori'; tori.alt = ''; tori.src = 'images/tori/tori_what.webp'; tori.draggable = false; disc.appendChild(tori);
     var tori2 = document.createElement('img'); tori2.id = 'board-ana-tori2'; tori2.alt = ''; tori2.draggable = false; tori2.style.visibility = 'hidden'; disc.appendChild(tori2);
@@ -2615,9 +2636,16 @@ var Board = (function () {
         var dt = Math.min(0.05, (now - last) / 1000); last = now;
         if (fast) { var k = Math.min(1, (now - accelAt) / ANA_ACCEL_MS); curMult = 1 + (ANA_ACCEL_MULT - 1) * k * k; } else curMult += (1 - curMult) * (1 - Math.exp(-dt * 8));   // 결과가 나오면 원래 속도로 부드럽게 복귀
         var mult = curMult;
-        R.spins.forEach(function (p, i) { angles[i] = (angles[i] + ANA_SPIN_BASE * p[1] * mult * dt) % 360; p[0].setAttribute('transform', 'rotate(' + angles[i].toFixed(1) + ' 118 118)'); });   // SVG 속성 방식(토리 프로필 링과 같은 방식)
+        R.spins.forEach(function (p, i) { angles[i] = (angles[i] + ANA_SPIN_BASE * p[1] * mult * dt) % 360; });
+        spinAnims.forEach(function (a) { a.playbackRate = mult; });   // 가속·감속은 회전 속도(재생 배율)만 바꿈
         raf = requestAnimationFrame(frame);
       }
+      var spinAnims = [];
+      if (!LT('rot')) R.spins.forEach(function (p) {   // 호 두 개: 기본 속도로 한 바퀴 6초(시계), 9초(반시계). 속도 변화는 playbackRate 로
+        var secs = 360 / (ANA_SPIN_BASE * Math.abs(p[1]));
+        var an = p[0].animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: secs * 1000, iterations: Infinity, direction: p[1] < 0 ? 'reverse' : 'normal' });
+        spinAnims.push(an); anims.push(an);
+      });
       if (!LT('rot')) raf = requestAnimationFrame(frame);   // 호 회전은 모션 줄이기와 관계없이 항상 돎 (요청에 따라 예외)
       // 정리·닫기
       function cleanup() {
@@ -2904,6 +2932,7 @@ var Board = (function () {
     });
   }
   function layoutReveal() {   // 오류 칸 전용 요소를 없애고 1,2,3,4,원 사료,5 를 한 줄로
+    settleScroll();
     var G = revGeom(), n = REAL_INSERT_AFTER, i;
     normalWorld = { maxScroll: maxScroll, worldW: worldW };
     clearTimeout(revealTimer); sceneEl.classList.add('board-revealing');
@@ -3008,6 +3037,7 @@ var Board = (function () {
   }
 
   function onPointerDown(e) {
+    settleScroll();
     if (e.button > 0 || drag.pid !== null || detailCard) return;
     scrollTarget = scrollPos; scrollVel = 0; drag.sv = 0; drag.lt = e.timeStamp;   // 굴러가던 관성은 손을 대면 멈춤
     var p = toStage(e), cel = e.target.closest ? e.target.closest('.board-card') : null;
@@ -3068,6 +3098,7 @@ var Board = (function () {
   }
 
   function endPointer(e, cancel) {
+    settleScroll();
     if (e.pointerId !== drag.pid) return;
     var c = drag.card, was = drag.active, tap = drag.tap, moved = drag.tapMoved;
     drag.tap = null; drag.tapMoved = false;
@@ -3594,7 +3625,7 @@ var Flow = (function () {
     white.style.display = 'block';
     var fadeIn = white.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_IN_MS, easing: 'ease-in', fill: 'forwards' });
     fadeIn.finished
-      .then(function () { SFX.play('puff'); return preload; })   // 완전히 하얘진 순간 "퓻"
+      .then(function () { return preload; })   // 완전히 하얘진 순간 ("퓻" 소리는 뺌)
       .then(function () {
         enterBoard();                             // 완전히 하얗게 덮인 순간에 화면 교체
         return wait(HOLD_MS);
