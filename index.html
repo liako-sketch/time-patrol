@@ -2416,7 +2416,12 @@ var Board = (function () {
   }
   function submitAudit() {   // '제출하기': 바로 제출하지 않고 확인 팝업을 먼저 띄움
     if (auditSent || subOpen || auditInput.value.trim().length < AUDIT_MIN) return;
-    BC('sub:click'); openSub();
+    BC('sub:click'); if (IS_IPHONE && (document.activeElement === auditInput || (window.visualViewport && innerHeight - window.visualViewport.height > 100))) {   // 아이폰: 키보드가 내려가며 화면 크기가 바뀌는 동안 큰 창을 같이 띄우면 웹킷이 죽는 일이 있어, 키보드가 다 내려간 뒤에 띄움
+      subOpen = true; auditInput.blur();
+      setTimeout(function () { subOpen = false; if (auditOpen && !auditSent) openSub(); }, 600);
+      return;
+    }
+    openSub();
   }
   function openSub() {
     BC('sub:start'); var noteEl = $('board-snote'); noteEl.textContent = '';
@@ -3756,7 +3761,7 @@ var A11y = (function () {
 
 // 아이폰 키보드: 입력칸을 누르면 브라우저(iOS)가 화면을 필요 이상으로 밀어 올림(이름 입력·서술형 모두). 그 밀림을 취소하고, 입력칸이 키보드·입력 도구 줄에 가려지는 만큼만 올림
 (function () {
-  if (!IS_IPHONE || !window.visualViewport) return;
+  if (!IS_IPHONE || !window.visualViewport || /[?&]nokb=1/.test(location.search)) return;   // ?nokb=1 : 키보드 화면 보정을 끄고 시험
   var vv = window.visualViewport, box = document.getElementById('flow-viewport'), curY = 0, TOOLBAR = 56, MARGIN = 16;
   function setY(y) { curY = y; box.style.transform = y ? 'translateY(' + y + 'px)' : ''; }
   function assist() {
@@ -3780,7 +3785,7 @@ var A11y = (function () {
 (function () {
   function refitAll() { try { Intro.fit(); Board.fit(); } catch (_) {} }
   ['load', 'pageshow', 'orientationchange'].forEach(function (ev) { addEventListener(ev, refitAll); });
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', refitAll);
+  if (window.visualViewport && !/[?&]nokb=1/.test(location.search)) window.visualViewport.addEventListener('resize', refitAll);
   [150, 500, 1200, 2500].forEach(function (ms) { setTimeout(refitAll, ms); });
   document.addEventListener('pointerdown', function once() { document.removeEventListener('pointerdown', once, true); setTimeout(refitAll, 50); }, true);
 })();
