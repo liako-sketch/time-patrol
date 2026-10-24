@@ -216,6 +216,7 @@ html.calm-mode #intro-namePanel.intro-pop { animation: intro-popfade .2s ease-ou
 #board-ana .ana-cssarc.a2 { inset: 4px; }
 #board-ana .ana-cssring.r3 { inset: 12px; border: 3px dashed currentColor; opacity: .4; }
 #board-scene.board-dragging .board-piece { animation-play-state: paused; }
+html.is-iphone.ana-running .board-piece { visibility: hidden; }   /* 아이폰: 어두운 막 뒤라 거의 안 보이므로 아예 그리지 않음 (자주 실패하면 분석 화면에서 튕기던 문제 대응) */
 .board-piece { position: absolute; margin: 0; pointer-events: none; user-select: none; -webkit-user-drag: none; will-change: transform;
   animation: board-float var(--dur, 10s) ease-in-out var(--delay, 0s) infinite alternate; }
 @keyframes board-float {   /* 아주 느린 둥둥: 위아래·좌우 소폭 + 아주 작은 회전 (transform 만) */
@@ -2641,7 +2642,7 @@ var Board = (function () {
       R.ells.forEach(function (e) { e.classList.remove('ana-hide'); });
       R.chat.style.transition = 'none'; R.chat.style.transform = 'scaleX(0)'; R.chat.style.opacity = '0'; R.chat.classList.remove('ana-show');
       R.txt.classList.remove('ana-off'); R.note.classList.remove('ana-off'); R.dots.textContent = '';
-      anaEl.classList.add('ana-on'); BC('ana:on');
+      anaEl.classList.add('ana-on'); document.documentElement.classList.add('ana-running'); BC('ana:on');
       // 키보드는 연출 뒤 화면으로 새지 않게 막고, Enter 는 '정답!' 뒤 건너뛰기에만 사용
       function onKey(e) {
         e.stopPropagation(); e.preventDefault();
@@ -2682,7 +2683,7 @@ var Board = (function () {
         anims.forEach(function (a) { try { a.cancel(); } catch (_) {} });
         window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKey, true); anaEl.removeEventListener('click', onClick);
         Array.prototype.slice.call(anaEl.querySelectorAll('.ana-p')).forEach(function (p) { p.parentNode.removeChild(p); });
-        anaBusy = false; syncTools(); BC('ana:cleanup');
+        document.documentElement.classList.remove('ana-running'); anaBusy = false; syncTools(); BC('ana:cleanup');
         if (anaEl && anaEl.parentNode) anaEl.parentNode.removeChild(anaEl);   // 다음 시행에 이전 상태가 남아 충돌하지 않도록 매번 새로 만듦
         anaEl = null; anaRefs = null;
       }
