@@ -725,7 +725,7 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 #a11y-desc3 { margin: 8px 0 0; font-size: 18px; line-height: 1.45; color: rgba(200, 235, 240, .8); word-break: keep-all; }
 .a11y-sub { margin: 12px 0 0 6px; padding-left: 16px; border-left: 2px solid rgba(95, 212, 224, .4); }   /* 소리 끄기 하위: 배경음 끄기 / 효과음 끄기 */
 .a11y-subrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.a11y-subrow + .a11y-subdesc + .a11y-subrow { margin-top: 14px; }
+.a11y-subrow + .a11y-subrow { margin-top: 14px; }
 .a11y-sublabel { font-family: var(--font-title); font-weight: 600; font-size: 18px; color: #eefcff; }
 .a11y-subsw { flex: none; display: flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--font-title); font-weight: 600; font-size: 15px; color: #d8f7fa; }
 .a11y-subtrack { position: relative; width: 48px; height: 26px; box-sizing: border-box; border-radius: 13px; border: 2px solid #5fd4e0; background: rgb(10, 25, 45); }
@@ -733,7 +733,6 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 .a11y-subsw[aria-checked="true"] .a11y-subtrack { background: rgb(18, 60, 80); }
 .a11y-subsw[aria-checked="true"] .a11y-subtrack::after { left: 25px; background: #8ff3fa; }
 .a11y-subsw:focus-visible .a11y-subtrack { box-shadow: 0 0 0 3px rgba(143, 243, 250, .5); }
-.a11y-subdesc { margin: 6px 0 0; font-size: 16px; line-height: 1.4; color: rgba(200, 235, 240, .75); word-break: keep-all; }
 /* 흔들림·움직임 줄이기 (html.calm-mode): 화면 흔들림은 자바스크립트가 건너뛰고, 아래는 CSS 움직임을 멈춤 */
 html.calm-mode .board-piece { animation: none; }
 html.calm-mode #board-sub.board-open .board-glowtxt { animation: none; }
@@ -941,11 +940,9 @@ html.calm-mode #board-scene .board-card.board-hl.board-hl-pulse { animation: non
   <div id="a11y-row2"><span id="a11y-label2">흔들림·움직임 줄이기</span><button id="a11y-sw2" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label2"><span id="a11y-track2"></span><span id="a11y-state2">꺼짐</span></button></div>
   <p id="a11y-desc2">어지러움을 유발할 수 있는 화면 동작을 멈춰요.</p>
   <div id="a11y-row3"><span id="a11y-label3">소리 끄기 (음소거)</span><button id="a11y-sw3" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label3"><span id="a11y-track3"></span><span id="a11y-state3">꺼짐</span></button></div>
-  <p id="a11y-desc3">소리를 모두 꺼요. 화면과 글자는 그대로예요.</p>
   <div class="a11y-sub"><div class="a11y-subrow"><span id="a11y-label4" class="a11y-sublabel">배경음 끄기</span><button id="a11y-sw4" class="a11y-subsw" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label4"><span class="a11y-subtrack"></span><span id="a11y-state4">꺼짐</span></button></div>
-  <p class="a11y-subdesc">배경 소리를 모두 꺼요. 화면과 글자는 그대로예요.</p>
-  <div class="a11y-subrow"><span id="a11y-label5" class="a11y-sublabel">효과음 끄기</span><button id="a11y-sw5" class="a11y-subsw" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label5"><span class="a11y-subtrack"></span><span id="a11y-state5">꺼짐</span></button></div>
-  <p class="a11y-subdesc">효과음을 모두 꺼요. 화면과 글자는 그대로예요.</p></div>
+  <div class="a11y-subrow"><span id="a11y-label5" class="a11y-sublabel">효과음 끄기</span><button id="a11y-sw5" class="a11y-subsw" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label5"><span class="a11y-subtrack"></span><span id="a11y-state5">꺼짐</span></button></div></div>
+  <p id="a11y-desc3">소리를 모두 꺼요. 화면과 글자는 그대로예요.</p>
   <p id="a11y-note">이 설정들은 이 기기 브라우저에만 저장되며 서버로 전송되지 않습니다.</p>
   <div id="a11y-btns"><button id="a11y-reset" type="button">설정 초기화</button><button id="a11y-close" type="button">닫기</button></div>
 </div></div>
@@ -3862,6 +3859,8 @@ var A11y = (function () {
     BGM.setMuted(muteB);
     showSw(sw3, state3, muteS && muteB); showSw(sw4, state4, muteB); showSw(sw5, state5, muteS);
   }
+  var desc3 = document.getElementById('a11y-desc3');
+  function say(w) { desc3.textContent = w + ' 모두 꺼요. 화면과 글자는 그대로예요.'; }   // 마지막으로 누른 스위치에 맞게 설명 앞부분이 바뀜 (소리를 / 배경 소리를 / 효과음을)
   function setMuteSfx(v) { muteS = !!v; writeK(KEY3, muteS); applyMute(); }
   function setMuteBgm(v) { muteB = !!v; writeK(KEY4, muteB); applyMute(); }
   function setMute(v) { muteS = muteB = !!v; writeK(KEY3, muteS); writeK(KEY4, muteB); applyMute(); }
@@ -3876,10 +3875,10 @@ var A11y = (function () {
   pop.addEventListener('click', function (e) { if (e.target === pop) closePop(); });
   sw.addEventListener('click', function () { setMode(sw.getAttribute('aria-checked') !== 'true'); });
   sw2.addEventListener('click', function () { setCalm(sw2.getAttribute('aria-checked') !== 'true'); });
-  sw3.addEventListener('click', function () { setMute(!(muteS && muteB)); });   // 둘 다 켜져 있으면 둘 다 끄고, 아니면 둘 다 켬
-  sw4.addEventListener('click', function () { setMuteBgm(!muteB); });
-  sw5.addEventListener('click', function () { setMuteSfx(!muteS); });
-  document.getElementById('a11y-reset').addEventListener('click', function () { setMode(false); setCalm(false); setMute(false); });
+  sw3.addEventListener('click', function () { say('소리를'); setMute(!(muteS && muteB)); });   // 둘 다 켜져 있으면 둘 다 끄고, 아니면 둘 다 켬
+  sw4.addEventListener('click', function () { say('배경 소리를'); setMuteBgm(!muteB); });
+  sw5.addEventListener('click', function () { say('효과음을'); setMuteSfx(!muteS); });
+  document.getElementById('a11y-reset').addEventListener('click', function () { setMode(false); setCalm(false); say('소리를'); setMute(false); });
   document.getElementById('a11y-close').addEventListener('click', closePop);
   window.addEventListener('keydown', function (e) {   // 팝업이 열려 있는 동안 키 입력이 뒤 화면으로 가지 않게 (Tab·클릭 동작은 그대로)
     if (!open) return;
