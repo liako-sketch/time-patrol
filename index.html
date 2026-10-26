@@ -2408,7 +2408,7 @@ var Board = (function () {
     if (si < 0 || document.documentElement.classList.contains('calm-mode')) { if (fxEl) fxEl.style.display = 'none'; return; }
     if (!fxEl) {
       fxEl = document.createElement('div'); fxEl.className = 'board-fx'; cardsEl.appendChild(fxEl);
-      for (var k = 0; k < FX_N; k++) { var e = document.createElement('i'); fxEl.appendChild(e); fxDots.push({ e: e, u: k / FX_N, ox: 99, oy: 0 });   // ox 99 = 아직 시작점 안 정함 (아래에서 칸 방향을 보고 정함) }
+      for (var k = 0; k < FX_N; k++) { var e = document.createElement('i'); fxEl.appendChild(e); fxDots.push({ e: e, u: k / FX_N, ox: 99, oy: 0 }); }   // ox 99 = 아직 시작점 안 정함 (아래에서 칸 방향을 보고 정함)
     }
     var now = performance.now(), dt = Math.min(0.05, (now - fxT) / 1000); fxT = now;
     fxEl.style.display = '';
