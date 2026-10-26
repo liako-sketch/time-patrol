@@ -46,6 +46,7 @@
   --hl-glow: rgba(255, 213, 74, .4);                  /* 같은 노랑 글로우 */
 }
 /* ===== 공통 ===== */
+* { -webkit-tap-highlight-color: transparent; }   /* 갤럭시 탭 등에서 카드·버튼을 누를 때 생기는 파란 박스 없앰 */
 html, body { margin: 0; height: 100%; background: #000; overflow: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }   /* 사파리가 가로 화면에서 글자를 멋대로 키우지 않게 (설명 패널이 말풍선을 덮던 문제) */
 body { font-family: var(--font-body); font-weight: 400; }
 button { font-family: var(--font-title); font-weight: 600; }
@@ -73,7 +74,10 @@ button { font-family: var(--font-title); font-weight: 600; }
 }
 #intro-shaker { position: absolute; inset: 0; }
 #intro-stage.intro-loading #intro-shaker { visibility: hidden; }   /* 배경·토리 이미지가 준비될 때까지 말풍선도 같이 숨김 */
-#intro-bg { position: absolute; inset: -20px; background: url('images/back/back1.webp') center / 100% 100% no-repeat; }
+#intro-bg { position: absolute; inset: -20px; background: url('images/back/back_0.webp') center / 100% 100% no-repeat; }   /* 처음 배경: 타임 코스모스가 없는 복도 */
+#intro-bg2 { position: absolute; inset: -20px; background: url('images/back/back1.webp') center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.6s ease; pointer-events: none; }   /* 타임 코스모스가 나타난 복도: 해당 대사에서 서서히 겹쳐 나타남 */
+#intro-bg2.intro-on { opacity: 1; }
+html.calm-mode #intro-bg2 { transition: none; }
 
 #intro-tori { position: absolute; left: 80px; bottom: 40px; height: 480px; width: auto; pointer-events: none; }
 
@@ -116,7 +120,7 @@ button { font-family: var(--font-title); font-weight: 600; }
 }
 #intro-yes.intro-on { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .4s ease, box-shadow .2s ease; }
 #intro-yes:hover, #intro-yes:focus-visible { box-shadow: 0 0 34px rgba(95, 212, 224, 0.7); outline: none; }
-@media (prefers-reduced-motion: reduce) { #intro-yes, #intro-yes.intro-on { transition: none; } }
+html.calm-mode #intro-yes, html.calm-mode #intro-yes.intro-on { transition: none; }   /* 움직임 줄이기를 켠 경우만 페이드 없이 바로 나타남 (OS 설정과는 무관) */
 #intro-namePanel {
   position: absolute; left: 600px; bottom: 405px; width: 1100px; box-sizing: border-box; display: none;   /* 안내가 입력창 위로 올라간 만큼 틀을 위로 늘려 입력창·확인 버튼 위치는 그대로 */
   padding: 16px 24px 12px; background: rgba(10, 25, 45, 0.88); border: 2px solid #5fd4e0;
@@ -603,8 +607,8 @@ html.colorblind-mode .board-kw.board-lit::before { content: '\2713\00a0'; }   /*
 .board-chold .board-card { position: relative; left: auto; top: auto; width: auto; height: 100%; aspect-ratio: 180 / 245; transform: none; transition: none; pointer-events: none; }
 .board-hold-bad .board-card { border-color: var(--tori-warn); }
 .board-hold-ok .board-card { border-color: var(--ok-main); }
-.board-ctext { flex: 1 1 0; min-width: 0; height: 100%; overflow-y: auto; overscroll-behavior: contain; padding-top: 40px; box-sizing: border-box; }
-.board-cz .board-cbody { font-family: var(--font-body); font-weight: 400; font-size: 29px; line-height: 1.65; word-break: keep-all; color: #eefcff; }
+.board-ctext { flex: 1 1 0; min-width: 0; height: 100%; overflow: hidden; padding-top: 40px; box-sizing: border-box; }   /* 스크롤 없이 다 보이게: 글자 크기는 스크립트(fitCmp)가 맞춤 */
+.board-cz .board-cbody { font-family: var(--font-body); font-weight: 400; font-size: var(--cmp-fs, 29px); line-height: 1.65; word-break: keep-all; color: #eefcff; }
 .board-cz .board-cbody span { display: block; }
 .board-cz .board-cbody span + span { margin-top: 8px; }
 .board-badges { position: absolute; right: 22px; top: 20px; display: flex; gap: 8px; }
@@ -616,7 +620,7 @@ html.colorblind-mode .board-kw.board-lit::before { content: '\2713\00a0'; }   /*
 .board-cz .board-cbody > span::before { counter-increment: board-cs; content: counter(board-cs) ') '; opacity: .6; }
 mark.board-mk-bad { color: inherit; background: rgba(var(--bad-rgb), .35); text-decoration: underline; text-decoration-color: var(--tori-warn); text-underline-offset: 4px; border-radius: 4px; }
 mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4px; }
-.board-csrc { margin: 20px 0 0; padding-top: 14px; border-top: 1px solid rgba(var(--ok-rgb), .4); font-family: var(--font-body); font-weight: 400; font-size: 22px; line-height: 1.4; color: rgba(200, 235, 240, .7); }
+.board-csrc { margin: 20px 0 0; padding-top: 14px; border-top: 1px solid rgba(var(--ok-rgb), .4); font-family: var(--font-body); font-weight: 400; font-size: calc(var(--cmp-fs, 29px) * .76); line-height: 1.4; color: rgba(200, 235, 240, .7); }
 .board-csrc span { display: block; }
 /* 비교 화면이 열린 동안 뒤 화면(타임라인·카드 글자·토리 말풍선·버튼)은 덮개 너머로 비치지 않게 숨김 */
 #board-scene.board-cmpopen #board-clip, #board-scene.board-cmpopen #board-cards, #board-scene.board-cmpopen #board-comm, #board-scene.board-cmpopen .board-edge,
@@ -805,6 +809,7 @@ html.colorblind-mode #board-czOk .board-badge::before { content: '\25CB  '; }
     <div id="intro-stage">
       <div id="intro-shaker">
         <div id="intro-bg"></div>
+        <div id="intro-bg2"></div>
         <img id="intro-tori" src="images/tori/tori_default.webp" alt="">
         <div id="intro-bubble">
           <svg id="intro-bubble-tail" viewBox="0 0 28 44" aria-hidden="true">
@@ -936,8 +941,8 @@ var PIECES = [
   { n: 2, w: 279, h: 333, x: 0, y: 491, dx: 6, dy: 24, rot: 1.6, dur: 6.67, delay: -5 },    // 부서진 기둥
   { n: 3, w: 288, h: 287, x: 637, y: 0, dx: 8, dy: 28, rot: 1.6, dur: 7.92, delay: -1 },   // 작은 성탑
   { n: 4, w: 195, h: 290, x: 2004, y: 323.4, dx: 6, dy: 18, rot: 1.6, dur: 6.25, delay: -6 },     // 작은 아치
-  { n: 5, w: 182, h: 241, x: 2141, y: 0, dx: 6, dy: 24, rot: 1.4, dur: 10.42, delay: -8 },  // 작은 성탑(우상단)
-  { n: 6, w: 377, h: 451, x: 2371, y: 13, dx: 4, dy: 18, rot: 1, dur: 10.83, delay: -2 },    // 금 간 고층 건물
+  { n: 5, w: 182, h: 237, x: 2141, y: 0, dx: 6, dy: 24, rot: 1.4, dur: 10.42, delay: -8 },  // 작은 성탑(우상단)
+  { n: 6, w: 371, h: 474, x: 2371, y: 13, dx: 4, dy: 18, rot: 1, dur: 10.83, delay: -2 },    // 금 간 고층 건물
   { n: 7, w: 377, h: 340, x: 2375, y: 474, dx: 6, dy: 12, rot: 1, dur: 8.33, delay: -7 }   // 성벽
 ];
 // 화면 크기: 아이폰 인앱 브라우저는 처음 열 때 innerHeight 가 아래 도구막대 뒤까지 포함한 큰 값이라 화면이 아래로 치우쳐 뜸(새로고침하면 정상). 실제로 보이는 영역(visualViewport)이 더 작으면 그 값을 씀. 글자를 입력하는 중에는 키보드 때문에 줄어든 값을 쓰지 않음
@@ -1543,7 +1548,7 @@ var Intro = (function () {
   })();
   var yesBtn = $('intro-yes');   // 말풍선 위 '네' 버튼 (yes: true 인 대사가 다 나온 뒤에만 보임)
   var panel = $('intro-namePanel'), input = $('intro-nameInput'), err = $('intro-nameErr');
-  var orb = $('intro-orb');
+  var orb = $('intro-orb'), bg2 = $('intro-bg2');
 
   // 상태 (코드네임은 메모리 변수에만 보관)
   var fontWait = false, waiting = false, fast = false, idx = 0, typing = false, timer = null, codename = '', active = false, shakeTimer = null;
@@ -1650,6 +1655,7 @@ var Intro = (function () {
     input.disabled = false; nameBtn.disabled = false;
     idx = i;
     var item = SCRIPT[i];
+    bg2.classList.toggle('intro-on', item.action === 'orb');   // 타임 코스모스 안내 대사에서 배경이 코스모스가 있는 복도로 서서히 바뀜
     var full = parseLine(item.text);
     var plain = full.map(function (x) { return x.c; }).join('');
     var triggers = [], typedChars = Array.from(plain);
@@ -1874,6 +1880,8 @@ var Board = (function () {
     wheelStep: 140,           // 휠 한 칸(약 100px 입력)당 이동 목표량(px)
     inertiaFriction: 5,       // 배경을 끌어 스크롤하고 놓은 뒤 관성이 줄어드는 정도(클수록 빨리 멈춤). 놓은 뒤 이동 거리 ≈ 놓을 때 속도 ÷ 이 값
     inertiaMaxSpeed: 2500,    // 관성 시작 속도 상한(px/초)
+    elasticMax: 150,          // 끝에서 더 끌 때 늘어나는 최대 길이(px). 놓으면 스프링처럼 돌아옴
+    springK: 170, springC: 20,   // 되돌아오는 스프링 세기·감쇠 (감쇠가 작을수록 더 튕김)
     wheelEase: 0.14,          // 매 프레임 남은 거리의 이 비율만큼 이동(감속 접근)
     toriAvatarScale: 1.015,   // 초상 안 토리 이미지 크기 = 원 지름 × 이 값 (4개 포즈 공통)
     toriAvatarOffsetX: -3.6,   // 이미지 왼쪽 위 모서리의 원 안 위치(px). 클수록 오른쪽
@@ -1908,7 +1916,7 @@ var Board = (function () {
   var worldExt = slotX(ERR) + L.slotW + L.sidePad;
   var worldW = worldExt, maxScroll = Math.max(0, worldExt - L.stageW);   // 오류 칸은 처음부터 항상 포함
   var maxScrollExt = Math.max(1, maxScroll);
-  var scrollVel = 0, scrollPos = 0, scrollTarget = 0, scale = 1, offX = 0, offY = 0;
+  var scrollVel = 0, scrollPos = 0, scrollTarget = 0, scale = 1, offX = 0, offY = 0, ov = 0, ovVel = 0;   // ov: 끝에서 늘어난 길이(내용이 오른쪽으로 밀리면 +), ovVel: 그 속도
   var active = false;
 
   function fit() {
@@ -2188,11 +2196,22 @@ var Board = (function () {
   // 스크롤
   // 위치를 직접 지정(드래그/자동 밀기/리셋): 휠 목표 위치도 함께 맞춤
   function setScroll(v) {
-    scrollPos = Math.max(0, Math.min(maxScroll, v)); scrollTarget = scrollPos; scrollVel = 0;
+    scrollPos = Math.max(0, Math.min(maxScroll, v)); scrollTarget = scrollPos; scrollVel = 0; ov = 0; ovVel = 0;
+    renderScroll();
+  }
+  function elasticOf(raw) {   // 끝을 넘어 끈 거리 → 늘어난 길이 (저항이 점점 커짐)
+    var E = L.elasticMax, x = raw < 0 ? -raw : raw > maxScroll ? raw - maxScroll : 0;
+    if (!x) return 0;
+    var o = E * (1 - Math.exp(-0.55 * x / E));
+    return raw < 0 ? o : -o;
+  }
+  function dragScroll(raw) {   // 손가락으로 배경을 끌 때: 끝을 넘으면 쫀득하게 늘어남 (움직임 줄이기에서는 그냥 멈춤)
+    scrollPos = Math.max(0, Math.min(maxScroll, raw)); scrollTarget = scrollPos; scrollVel = 0; ovVel = 0;
+    ov = document.documentElement.classList.contains('calm-mode') ? 0 : elasticOf(raw);
     renderScroll();
   }
   function renderScroll() {
-    world.style.transform = 'translateX(' + (-scrollPos) + 'px)';
+    world.style.transform = 'translateX(' + (-scrollPos + ov) + 'px)';
     bg.style.transform = 'translateX(' + ((0.5 - scrollPos / maxScrollExt) * 2 * L.parallax) + 'px)';
     $('board-edgeL').classList.toggle('board-on', scrollPos > 1);
     $('board-edgeR').classList.toggle('board-on', scrollPos < maxScroll - 1);
@@ -2203,15 +2222,16 @@ var Board = (function () {
     if (!CAN_TRANSLATE) placeAll(false);   // translate 를 지원하지 않는 오래된 브라우저는 예전처럼 매번 위치를 다시 계산
     else for (var ci = 0; ci < cards.length; ci++) {
       var kc = cards[ci];
-      if (kc.where !== 'hand' && !(revLayout && kc.revIdx != null) && !(kc === drag.card && drag.active)) { kc.el.style.translate = (kc.sb - scrollPos) + 'px 0px'; slid = true; }
+      if (kc.where !== 'hand' && !(revLayout && kc.revIdx != null) && !(kc === drag.card && drag.active)) { kc.el.style.translate = (kc.sb - scrollPos + ov) + 'px 0px'; slid = true; }
     }
     clearTimeout(settleTimer);
-    if (slid) settleTimer = setTimeout(settleScroll, 160);
+    if (slid && Math.abs(ov) < 0.5) settleTimer = setTimeout(settleScroll, 160);
     if (drag.active) applyDrag();
   }
   var settleTimer = null, CAN_TRANSLATE = !!(window.CSS && CSS.supports && CSS.supports('translate', '0px 0px'));
   function settleScroll() {   // 밀어 둔 카드들을 지금 스크롤 위치에 맞는 실제 위치로 확정
     clearTimeout(settleTimer);
+    if (Math.abs(ov) >= 0.5) return;   // 늘어난 채로 돌아오는 중에는 확정하지 않음 (돌아온 뒤 확정)
     var dirty = false;
     for (var ci = 0; ci < cards.length; ci++) if (cards[ci].el.style.translate) { dirty = true; break; }
     if (dirty) placeAll(false);
@@ -3010,6 +3030,11 @@ var Board = (function () {
     if (window.ResizeObserver) { var ro = new ResizeObserver(size); ro.observe(el); cmpRO.push(ro); }
     size();
   }
+  function fitCmp() {   // 비교 화면의 두 본문을 스크롤 없이 다 보이게: 둘 중 하나라도 넘치면 같은 비율로 글자를 줄임 (위아래 글자 크기는 항상 같음)
+    var bodies = [$('board-ctBad'), $('board-ctOk')], fs = 29;
+    cmpEl.style.setProperty('--cmp-fs', fs + 'px');
+    while (fs > 16 && bodies.some(function (b) { return b.scrollHeight > b.clientHeight + 1; })) { fs -= 1; cmpEl.style.setProperty('--cmp-fs', fs + 'px'); }
+  }
   function openCmp() {
     if (cmpOpen) return;
     var forged = CARD_DATA.filter(function (d) { return d.isForged; })[0] || {};
@@ -3022,7 +3047,7 @@ var Board = (function () {
     REAL_SOURCE_SRC.forEach(function (t) { var sp = document.createElement('span'); sp.textContent = t; src.appendChild(sp); });
     cmpOpen = true; sceneEl.classList.add('board-cmpopen'); resEl.inert = true; resEl.classList.add('board-under'); cmpEl.classList.add('board-open');
     frontCard($('board-chBad'), forged.title, forged.image); frontCard($('board-chOk'), REAL_SOURCE_TITLE, REAL_IMAGE_SRC);
-    $('board-ctBad').scrollTop = 0; $('board-ctOk').scrollTop = 0;
+    fitCmp();
     $('board-cmpClose').focus({ preventScroll: true });
   }
   function closeCmp() {
@@ -3063,7 +3088,7 @@ var Board = (function () {
     if (drag.bgScroll) {
       if (Math.hypot(dx, dy) >= L.dragThreshold) drag.tapMoved = true;
       if (Math.abs(dx) > 2) {
-        var before = scrollPos; setScroll(drag.bgStartScroll - dx);
+        var before = scrollPos; dragScroll(drag.bgStartScroll - dx);
         var dtm = (e.timeStamp - drag.lt) / 1000;
         if (dtm > 0.001) { drag.sv = drag.sv * 0.6 + ((scrollPos - before) / dtm) * 0.4; drag.lt = e.timeStamp; }   // 손가락 속도(스크롤 px/초)를 부드럽게 기록
       }
@@ -3101,14 +3126,15 @@ var Board = (function () {
   }
 
   function endPointer(e, cancel) {
-    settleScroll();
+    var coasting = e.pointerId === drag.pid && drag.bgScroll && !cancel && !document.documentElement.classList.contains('calm-mode') && e.timeStamp - drag.lt < 120 && Math.abs(drag.sv) > 60;
+    if (!coasting) settleScroll();   // 관성으로 계속 굴러가면 멈춘 뒤에 확정 (놓는 순간 카드 위치를 다시 계산하면 끊겨 보임)
     if (e.pointerId !== drag.pid) return;
     var c = drag.card, was = drag.active, tap = drag.tap, moved = drag.tapMoved;
     drag.tap = null; drag.tapMoved = false;
     if (drag.raf) { cancelAnimationFrame(drag.raf); drag.raf = 0; }
     var wasBg = drag.bgScroll;
     drag.pid = null; drag.active = false; drag.bgScroll = false; sceneEl.classList.remove('board-dragging');
-    if (wasBg && !cancel && !document.documentElement.classList.contains('calm-mode') && e.timeStamp - drag.lt < 80 && Math.abs(drag.sv) > 60) {   // 움직이다 바로 놓았을 때만 관성 (멈춰 있다 놓으면 없음, 움직임 줄이기가 켜지면 없음)
+    if (wasBg && !cancel && !document.documentElement.classList.contains('calm-mode') && e.timeStamp - drag.lt < 120 && Math.abs(drag.sv) > 60) {   // 움직이다 바로 놓았을 때만 관성 (멈춰 있다 놓으면 없음, 움직임 줄이기가 켜지면 없음)
       scrollVel = Math.max(-L.inertiaMaxSpeed, Math.min(L.inertiaMaxSpeed, drag.sv));
     }
     try { stage.releasePointerCapture(e.pointerId); } catch (_) {}
@@ -3175,9 +3201,18 @@ var Board = (function () {
     if (!drag.active) Comm.frame(dt);
     if (drag.pid === null && scrollVel) {      // 배경 끌기 관성: 속도가 지수로 줄어듦, 끝에 닿으면 멈춤
       var np = scrollPos + scrollVel * dt;
-      if (np <= 0 || np >= maxScroll) { np = Math.max(0, Math.min(maxScroll, np)); scrollVel = 0; }
+      if (np <= 0 || np >= maxScroll) {   // 끝에 부딪힘: 남은 속도의 일부가 늘어남으로 바뀌었다가 스프링으로 돌아옴
+        np = Math.max(0, Math.min(maxScroll, np));
+        if (!document.documentElement.classList.contains('calm-mode')) ovVel = Math.max(-1200, Math.min(1200, -scrollVel * 0.18));
+        scrollVel = 0;
+      }
       scrollPos = np; scrollTarget = np; renderScroll();
       if (scrollVel) { scrollVel *= Math.exp(-L.inertiaFriction * dt); if (Math.abs(scrollVel) < 15) scrollVel = 0; }
+    }
+    if (drag.pid === null && (ov || ovVel)) {      // 끝에서 늘어난 만큼 스프링으로 되돌아옴
+      ovVel += (-L.springK * ov - L.springC * ovVel) * dt; ov += ovVel * dt;
+      if (Math.abs(ov) < 0.4 && Math.abs(ovVel) < 8) { ov = 0; ovVel = 0; }
+      renderScroll();
     }
     if (drag.pid === null && Math.abs(scrollTarget - scrollPos) > 0.1) {      // 휠: 목표 위치로 감속 접근
       scrollPos += (scrollTarget - scrollPos) * (1 - Math.pow(1 - L.wheelEase, dt * 60));
@@ -3646,6 +3681,7 @@ var Flow = (function () {
   function start() {
     showScene('intro');
     introStage.classList.add('intro-loading');
+    var nextBg = new Image(); keep.push(nextBg); nextBg.src = 'images/back/back1.webp';   // 두 번째 배경은 기다리지 않고 미리 받아 둠 (전환 때 늦게 뜨지 않게)
     var go = function () {
       if (!introStage.classList.contains('intro-loading')) return;   // 한 번만
       introStage.classList.remove('intro-loading');
@@ -3653,7 +3689,7 @@ var Flow = (function () {
     };
     // 인트로 배경·토리 이미지를 불러오고 디코딩한 뒤 한꺼번에 보임 (느려도 최대 3초만 기다림)
     Promise.race([
-      Promise.all(['images/back/back1.webp', 'images/tori/tori_default.webp'].map(function (u) {
+      Promise.all(['images/back/back_0.webp', 'images/tori/tori_default.webp'].map(function (u) {
         return new Promise(function (res) {
           var im = new Image(); keep.push(im);
           im.onerror = function () { res(); };
