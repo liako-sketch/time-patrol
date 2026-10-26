@@ -724,7 +724,7 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 #a11y-sw3:focus-visible #a11y-track3 { box-shadow: 0 0 0 3px rgba(143, 243, 250, .5); }
 #a11y-desc3 { margin: 8px 0 0; font-size: 18px; line-height: 1.45; color: rgba(200, 235, 240, .8); word-break: keep-all; }
 .a11y-sub { margin: 12px 0 0 6px; padding-left: 16px; border-left: 2px solid rgba(95, 212, 224, .4); }   /* 소리 끄기 하위: 배경음 끄기 / 효과음 끄기 */
-.a11y-subrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.a11y-subrow { display: flex; align-items: center; justify-content: flex-start; gap: 14px; }   /* 글자 바로 옆에 스위치 */
 .a11y-subrow + .a11y-subrow { margin-top: 14px; }
 .a11y-sublabel { font-family: var(--font-title); font-weight: 600; font-size: 18px; color: #eefcff; }
 .a11y-subsw { flex: none; display: flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--font-title); font-weight: 600; font-size: 15px; color: #d8f7fa; }
@@ -3876,8 +3876,8 @@ var A11y = (function () {
   sw.addEventListener('click', function () { setMode(sw.getAttribute('aria-checked') !== 'true'); });
   sw2.addEventListener('click', function () { setCalm(sw2.getAttribute('aria-checked') !== 'true'); });
   sw3.addEventListener('click', function () { say('소리를'); setMute(!(muteS && muteB)); });   // 둘 다 켜져 있으면 둘 다 끄고, 아니면 둘 다 켬
-  sw4.addEventListener('click', function () { say('배경 소리를'); setMuteBgm(!muteB); });
-  sw5.addEventListener('click', function () { say('효과음을'); setMuteSfx(!muteS); });
+  sw4.addEventListener('click', function () { setMuteBgm(!muteB); say(muteB ? '배경 소리를' : '소리를'); });   // 켜질 때만 '배경 소리를', 다시 끄면 원래 문구
+  sw5.addEventListener('click', function () { setMuteSfx(!muteS); say(muteS ? '효과음을' : '소리를'); });   // 켜질 때만 '효과음을', 다시 끄면 원래 문구
   document.getElementById('a11y-reset').addEventListener('click', function () { setMode(false); setCalm(false); say('소리를'); setMute(false); });
   document.getElementById('a11y-close').addEventListener('click', closePop);
   window.addEventListener('keydown', function (e) {   // 팝업이 열려 있는 동안 키 입력이 뒤 화면으로 가지 않게 (Tab·클릭 동작은 그대로)
