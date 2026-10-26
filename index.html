@@ -6,6 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <link rel="icon" href="data:,">
 <title>타임 패트롤: 서임권 투쟁</title>
+<script>if (/iPhone|iPod/.test(navigator.userAgent)) document.documentElement.classList.add('is-iphone');</script>   <!-- 아이폰 표시를 가장 먼저 달아, 아이폰이 큰 배경 그림을 받기 시작하지 않게 -->
 <link rel="preload" href="fonts/April16th-Promise.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-4Regular.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -78,6 +79,9 @@ button { font-family: var(--font-title); font-weight: 600; }
 #intro-bg2 { position: absolute; inset: -20px; background: url('images/back/back1.webp') center / 100% 100% no-repeat; opacity: 0; transition: opacity 1.6s ease; pointer-events: none; }   /* 타임 코스모스가 나타난 복도: 해당 대사에서 서서히 겹쳐 나타남 */
 #intro-bg2.intro-on { opacity: 1; }
 html.calm-mode #intro-bg2 { transition: none; }
+html.is-iphone #intro-bg { background-image: url('images/back/back_0_s.webp'); }   /* 아이폰: 가로 1920 으로 줄인 배경 (메모리 절약). 큰 그림은 받지 않음 */
+html.is-iphone #intro-bg2 { background-image: url('images/back/back1_s.webp'); }
+html.is-iphone #board-bg { background-image: url('images/back/back_2_s.webp'); }
 
 #intro-tori { position: absolute; left: 80px; bottom: 40px; height: 480px; width: auto; pointer-events: none; }
 
@@ -964,6 +968,7 @@ var PIECES = [
   { n: 7, w: 377, h: 340, x: 2375, y: 474, dx: 6, dy: 12, rot: 1, dur: 8.33, delay: -7 }   // 성벽
 ];
 // 화면 크기: 아이폰 인앱 브라우저는 처음 열 때 innerHeight 가 아래 도구막대 뒤까지 포함한 큰 값이라 화면이 아래로 치우쳐 뜸(새로고침하면 정상). 실제로 보이는 영역(visualViewport)이 더 작으면 그 값을 씀. 글자를 입력하는 중에는 키보드 때문에 줄어든 값을 쓰지 않음
+var BACK_SUF = /iPhone|iPod/.test(navigator.userAgent) ? '_s' : '';   // 아이폰은 줄인 배경 그림(_s)을 씀
 var IS_IPHONE = /iPhone|iPod/.test(navigator.userAgent);   // 아이폰: 링 그림과 호 회전 때문에 분석 화면이 멈추고, 소리가 끊겨(틱) 들려서 이 기기에서만 가볍게 처리
 if (IS_IPHONE) document.documentElement.classList.add('is-iphone');   // 아이폰만 CSS 로 가볍게 처리할 때 쓰는 표시
 function viewSize() {
@@ -1458,6 +1463,7 @@ var BGM = (function () {
   var LEVEL = 0.35;        // 배경음 크기 (효과음·말소리보다 작게). 여기 한 곳에서 조절
   var LOOP_FADE = 1.5;     // 반복할 때 곡 끝에서 줄어드는 시간(초)
   var muted = false, bm = null;   // 배경음 끄기 (효과음 끄기와 따로)
+  var fadeWant = null;            // 소리가 실제로 나기 시작할 때 걸 페이드인 시간(초)
   var el = null, gain = null, cur = '', tok = 0, stopT = null, ending = false, hiddenPaused = false, vt = 0;
 
   function ensure() {
@@ -1476,9 +1482,11 @@ var BGM = (function () {
       try { el.currentTime = 0; } catch (_) {}
       kick();
     });
+    el.addEventListener('playing', function () { startFade(); });   // 아이폰은 곡 파일을 받는 데 시간이 걸려, 재생 명령 때가 아니라 소리가 실제로 나기 시작할 때 페이드인을 시작
     setInterval(tick, 100);
     return true;
   }
+  function startFade() { if (fadeWant == null) return; var f = fadeWant; fadeWant = null; ramp(LEVEL, f, 0); }
   function kick() { try { var p = el.play(); if (p && p.catch) p.catch(function () {}); } catch (_) {} }
   function ramp(to, sec, from) {
     if (!el) return;
@@ -1512,7 +1520,10 @@ var BGM = (function () {
     cur = name;
     el.src = DIR + TRACKS[name];
     if (!gain) el.muted = muted;
-    if (fade > 0) { ramp(0, 0, 0); ramp(LEVEL, fade, 0); } else ramp(LEVEL, 0);
+    if (fade > 0) {
+      ramp(0, 0, 0); fadeWant = fade;           // 소리가 시작되기 전까지는 0 으로 두었다가 시작되면 서서히 키움
+      var my = tok; setTimeout(function () { if (my === tok) startFade(); }, 4000);   // 혹시 시작 신호가 안 오면 4초 뒤에는 어쨌든 켬
+    } else { fadeWant = null; ramp(LEVEL, 0); }
     kick();
   }
   function stop(sec) {       // sec 초 동안 줄이며 끄기 (0 이면 뚝 끊음)
@@ -3748,7 +3759,7 @@ var Flow = (function () {
   // 본 활동 자원 미리 불러오기 (전환 중 깜빡임·빈 화면 방지)
   var keep = [];
   var preload = Promise.all([
-    'images/back/back_2.webp',
+    'images/back/back_2' + BACK_SUF + '.webp',
   ].concat(PIECES.map(function (p) { return 'images/piece_clean/piece_' + p.n + '.webp'; })).concat(Object.keys(TORI_POSES).map(function (k) { return 'images/tori/tori_' + TORI_POSES[k] + '.webp'; })).map(function (u) {
     return new Promise(function (res) {
       var im = new Image(); keep.push(im);
@@ -3812,7 +3823,7 @@ var Flow = (function () {
   function start() {
     showScene('intro');
     introStage.classList.add('intro-loading');
-    var nextBg = new Image(); keep.push(nextBg); nextBg.src = 'images/back/back1.webp';   // 두 번째 배경은 기다리지 않고 미리 받아 둠 (전환 때 늦게 뜨지 않게)
+    var nextBg = new Image(); keep.push(nextBg); nextBg.src = 'images/back/back1' + BACK_SUF + '.webp';   // 두 번째 배경은 기다리지 않고 미리 받아 둠 (전환 때 늦게 뜨지 않게)
     var go = function () {
       if (!introStage.classList.contains('intro-loading')) return;   // 한 번만
       introStage.classList.remove('intro-loading');
@@ -3820,7 +3831,7 @@ var Flow = (function () {
     };
     // 인트로 배경·토리 이미지를 불러오고 디코딩한 뒤 한꺼번에 보임 (느려도 최대 3초만 기다림)
     Promise.race([
-      Promise.all(['images/back/back_0.webp', 'images/tori/tori_default.webp'].map(function (u) {
+      Promise.all(['images/back/back_0' + BACK_SUF + '.webp', 'images/tori/tori_default.webp'].map(function (u) {
         return new Promise(function (res) {
           var im = new Image(); keep.push(im);
           im.onerror = function () { res(); };
