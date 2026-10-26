@@ -2396,22 +2396,27 @@ var Board = (function () {
   }
   // 가루: 끌림 반경 안에서 카드에서 칸 중심으로 빨려 들어가는 작은 점들(카드 테두리와 같은 색). 위치·투명도(transform/opacity)만 바꾸고 그림자·블러는 쓰지 않음. 움직임 줄이기가 켜지면 없음
   var fxEl = null, fxDots = [], fxT = 0, FX_N = IS_IPHONE ? 6 : 10;
-  function fxPerim(d) {   // 카드 테두리 선 위의 무작위 지점 (카드 중심 기준 -0.5~0.5)
-    if (Math.random() < L.cardW / (L.cardW + L.cardH)) { d.ox = Math.random() - 0.5; d.oy = Math.random() < 0.5 ? -0.5 : 0.5; }
-    else { d.oy = Math.random() - 0.5; d.ox = Math.random() < 0.5 ? -0.5 : 0.5; }
+  function fxPerim(d, dx, dy) {   // 칸이 있는 쪽을 향한 변 위의 무작위 지점 (카드 중심 기준 -0.5~0.5). 방향에 가까운 변일수록 더 자주 고름. 방향이 안 정해질 만큼 겹쳤으면 네 변 모두
+    var len = Math.hypot(dx, dy), ux = len > 20 ? dx / len : 0, uy = len > 20 ? dy / len : 0;
+    var w = len > 20 ? [Math.max(0, ux), Math.max(0, -ux), Math.max(0, uy), Math.max(0, -uy)] : [1, 1, 1, 1];   // 오른쪽·왼쪽·아래·위
+    var r = Math.random() * (w[0] + w[1] + w[2] + w[3]), s = 0;
+    while (s < 3 && r >= w[s]) { r -= w[s]; s++; }
+    var t = Math.random() - 0.5;
+    if (s === 0) { d.ox = 0.5; d.oy = t; } else if (s === 1) { d.ox = -0.5; d.oy = t; } else if (s === 2) { d.oy = 0.5; d.ox = t; } else { d.oy = -0.5; d.ox = t; }
   }
   function fxUpdate(si, pull, ccx, ccy) {
     if (si < 0 || document.documentElement.classList.contains('calm-mode')) { if (fxEl) fxEl.style.display = 'none'; return; }
     if (!fxEl) {
       fxEl = document.createElement('div'); fxEl.className = 'board-fx'; cardsEl.appendChild(fxEl);
-      for (var k = 0; k < FX_N; k++) { var e = document.createElement('i'); fxEl.appendChild(e); var dd = { e: e, u: k / FX_N, ox: 0, oy: 0 }; fxPerim(dd); fxDots.push(dd); }
+      for (var k = 0; k < FX_N; k++) { var e = document.createElement('i'); fxEl.appendChild(e); fxDots.push({ e: e, u: k / FX_N, ox: 99, oy: 0 });   // ox 99 = 아직 시작점 안 정함 (아래에서 칸 방향을 보고 정함) }
     }
     var now = performance.now(), dt = Math.min(0.05, (now - fxT) / 1000); fxT = now;
     fxEl.style.display = '';
     var cx = slotCX(si), cy = slotCY();
     fxDots.forEach(function (d) {
       d.u += dt * 1.1;
-      if (d.u >= 1) { d.u -= 1; fxPerim(d); }
+      if (d.u >= 1) { d.u -= 1; fxPerim(d, cx - ccx, cy - ccy); }
+      if (d.ox === 99) fxPerim(d, cx - ccx, cy - ccy);
       var m = d.u * d.u, k = 1 - m;   // 카드 위 한 점에서 떠올라 칸 중심으로 갈수록 빨라지며 빨려 들어감
       d.e.style.transform = 'translate3d(' + (ccx + (cx - ccx) * m + d.ox * L.cardW * k).toFixed(1) + 'px,' + (ccy + (cy - ccy) * m + d.oy * L.cardH * k).toFixed(1) + 'px,0)';
       d.e.style.opacity = (Math.min(1, Math.sin(d.u * Math.PI) * 1.6) * Math.min(1, pull * 2 + 0.4)).toFixed(2);
@@ -2424,7 +2429,7 @@ var Board = (function () {
     var hcx = drag.px - drag.gx + L.cardW / 2, hcy = drag.py - drag.gy + L.cardH / 2;
     var ex = drag.ex != null && !drag.esc ? drag.ex : -1;
     if (ex >= 0 && Math.hypot(hcx - slotCX(ex), hcy - slotCY()) >= L.magnetRadius) { drag.esc = true; ex = -1; }   // 원래 칸의 끌림 범위 밖으로 한 번 나가면 그때부터 자석이 평소처럼 켜짐
-    var n = nearestSlot(hcx, hcy, ex), pull = 0, cx = hcx, cy = hcy, w = L.cardW, h = L.cardH;
+    var n = ex >= 0 ? { i: -1, d: L.magnetRadius } : nearestSlot(hcx, hcy), pull = 0, cx = hcx, cy = hcy, w = L.cardW, h = L.cardH;
     if (n.i >= 0) {
       var t = 1 - n.d / L.magnetRadius; pull = Math.sin(t * Math.PI / 2);   // 멀리서부터 눈에 띄게 당겨지고 가까울수록 1에 가까워짐
       cx += (slotCX(n.i) - cx) * pull; cy += (slotCY() - cy) * pull;
