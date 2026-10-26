@@ -1283,7 +1283,7 @@ var SFX = {
       amp.connect(wob);
       if (H.wobblePct > 0) slowWander(H.wobbleHz, H.wobblePct / 100, wob.gain);
       wob.connect(fade); fade.connect(SFX.gain);
-      fade.gain.setValueAtTime(0.0001, t); fade.gain.linearRampToValueAtTime(1, t + H.fadeIn);
+      fade.gain.setValueAtTime(0.0001, t); fade.gain.linearRampToValueAtTime(1, t + ((SFX.humWanted && SFX.humWanted.fadeIn) || H.fadeIn));   // 시작 요청에 fadeIn 이 있으면 그 시간으로
       oA.start(t); oB.start(t); lfo.start(t);
       if (oscs.length > 3) oscs[3].start(t, Math.random() * 0.5);
       oscs = oscs.concat(wanders);   // 정지 때 함께 멈춤
@@ -1741,6 +1741,7 @@ var Intro = (function () {
     if (i === 0) BGM.play('intro');     // 시작하자마자 첫 배경음 (반복)
     idx = i;
     var item = SCRIPT[i];
+    if (item.action === 'orb' && !bg2.classList.contains('intro-on')) SFX.play('confirmShow', AUDIO.level.confirm);   // 배경이 코스모스 복도로 바뀔 때 '타임라인 수정하기' 버튼이 나타날 때와 같은 우웅 소리
     bg2.classList.toggle('intro-on', item.action === 'orb');   // 타임 코스모스 안내 대사에서 배경이 코스모스가 있는 복도로 서서히 바뀜
     var full = parseLine(item.text);
     var plain = full.map(function (x) { return x.c; }).join('');
@@ -1801,7 +1802,7 @@ var Intro = (function () {
     } else if (item.action === 'orb') {
       orb.classList.add('intro-pulse', 'intro-active');
       var pulse = orb.getAnimations({ subtree: true }).filter(function (a) { return a.animationName === 'intro-orbPulse'; })[0];
-      SFX.humStart({ anim: pulse });          // 깜빡임이 시작되는 순간 울림 시작 (같은 애니메이션 시작 시각 기준)
+      SFX.humStart({ anim: pulse, fadeIn: ORB_PULSE_SEC });          // 소리는 빛이 한 번 밝아지는 시간(2초) 동안 서서히 커짐. 깜빡임이 시작되는 순간 울림 시작 (같은 애니메이션 시작 시각 기준)
     } else {
       if (item.yes) yesBtn.classList.add('intro-on');   // '네' 전용 대사: 타이핑이 끝난 뒤 버튼만 페이드 인 (Enter 안내·▼ 없음)
       else { nextMark.style.display = 'block'; hint.style.display = 'block'; }
@@ -2821,6 +2822,7 @@ var Board = (function () {
         if (!alive || fast) return;
        
         fast = true; accelAt = performance.now(); SFX.play('anaRise', AUDIO.level.ana);
+        BGM.stop(ANA_ACCEL_MS / 1000);   // 토리가 작아지기 시작하면 타임라인 배경음이 같은 시간 동안 줄어들며 사라짐
         if (!still) { shrinkAnim = R.pop.animate([{ transform: 'scale(1)' }, { transform: 'scale(' + (ok ? ANA_SHRINK_TO : ANA_SHRINK_TO * 0.85).toFixed(3) + ')' }], { duration: ANA_ACCEL_MS, easing: ok ? 'ease-in' : 'cubic-bezier(.55, 0, .35, 1)', fill: 'forwards' }); anims.push(shrinkAnim); }   // 길이 = 가속 구간(결과 연출 시작과 같은 때 끝남). 실패는 바닥에서 부드럽게 멈춤
       }
       later(startAccel, Math.max(0, MIN_WAIT_MS + 800 - ANA_ACCEL_MS));
@@ -2842,9 +2844,8 @@ var Board = (function () {
     closeSub(); closeAudit();
     var g = gradeBoard();
     if (anaBusy) return;
-    BGM.stop(1);   // 최종 제출을 누르면 타임라인 배경음이 1초 동안 줄어들며 사라짐
     runAnalysisSequence(g).then(function () {   // 분석 대기 연출 뒤에 기존 흐름
-      if (g.ok) showSuccess(); else { lastAnswer = ''; BGM.play('board', { fade: 0.6 }); showFail(g); }   // 실패하면 타임라인 배경음이 다시 서서히 돌아옴
+      if (g.ok) showSuccess(); else { lastAnswer = ''; BGM.play('board', { fade: 1 }); showFail(g); }   // 실패하면 타임라인 배경음이 다시 서서히 돌아옴
     });
   }
   function resButtons(list) {
@@ -2898,7 +2899,7 @@ var Board = (function () {
     updateConfirm();
   }
   function resetSolved() {
-    if (BGM.now() === 'clear') BGM.play('board', { fade: 0.4 });   // 다시 풀기로 돌아가면 타임라인 배경음으로
+    if (BGM.now() === 'clear') BGM.play('board', { fade: 1 });   // 다시 풀기로 돌아가면 타임라인 배경음으로
     boardSolved = false; lastAnswer = ''; revealed = false; applyReveal(false); if (typeof Comm !== 'undefined') Comm.setSolved(false);
     cards.forEach(function (k) { k.solved = false; k.el.classList.remove('board-okc'); });
     sceneEl.classList.remove('board-solved'); syncTools();
@@ -3760,7 +3761,7 @@ var Flow = (function () {
       })
       .then(function () {
         SFX.play('breath');                       // 걷히는 동안 아주 작은 숨소리
-        BGM.play('board', { fade: 0.4 });         // 타임라인이 보이면 세 번째 배경음 (반복)
+        BGM.play('board', { fade: 1.5 });         // 타임라인이 보이면 세 번째 배경음 (반복)
         var fadeOut = white.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE_OUT_MS, easing: 'ease-out', fill: 'forwards' });
         return fadeOut.finished;
       })
