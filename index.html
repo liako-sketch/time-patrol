@@ -193,8 +193,10 @@ html.calm-mode #intro-orb { transition: none; }
 #board-ana .ana-cssarc.a2 { inset: 4px; }
 #board-ana .ana-cssring.r3 { inset: 12px; border: 3px dashed currentColor; opacity: .4; }
 #board-scene.board-dragging .board-piece { animation-play-state: paused; }
+@keyframes ana-reveal { from { opacity: 0; } to { opacity: 1; } }
+html.is-iphone.ana-reveal #board-bg, html.is-iphone.ana-reveal #board-clip, html.is-iphone.ana-reveal #board-comm, html.is-iphone.ana-reveal #board-cards, html.is-iphone.ana-reveal .board-edge, html.is-iphone.ana-reveal #board-sbar, html.is-iphone.ana-reveal #board-srcbtn { animation: ana-reveal .6s ease; }   /* 아이폰: 가려 두었던 뒤 화면이 돌아올 때 한 번에 튀어나오지 않고 서서히 나타남 */
 html.is-iphone.ana-running .board-piece { visibility: hidden; }   /* 아이폰: 어두운 막 뒤라 거의 안 보이므로 아예 그리지 않음 (자주 실패하면 분석 화면에서 튕기던 문제 대응) */
-html.is-iphone.ana-running #board-clip, html.is-iphone.ana-running #board-comm, html.is-iphone.ana-running #board-cards, html.is-iphone.ana-running .board-edge, html.is-iphone.ana-running #board-confirm, html.is-iphone.ana-running #board-sbar, html.is-iphone.ana-running #board-srcbtn { visibility: hidden; }   /* 아이폰: 분석 화면이 뜬 동안 어두운 막 뒤의 큰 화면 층(배경·타임라인·토리 통신·카드·타임라인 수정하기 버튼)은 그리지 않음 (메모리 절약). 뒤가 어중간하게 비치는 것보다 깔끔함 */
+html.is-iphone.ana-running #board-bg, html.is-iphone.ana-running #board-clip, html.is-iphone.ana-running #board-comm, html.is-iphone.ana-running #board-cards, html.is-iphone.ana-running .board-edge, html.is-iphone.ana-running #board-confirm, html.is-iphone.ana-running #board-sbar, html.is-iphone.ana-running #board-srcbtn { visibility: hidden; }   /* 아이폰: 분석 화면이 뜬 동안 어두운 막 뒤의 큰 화면 층(배경·타임라인·토리 통신·카드·타임라인 수정하기 버튼)은 그리지 않음 (메모리 절약). 뒤가 어중간하게 비치는 것보다 깔끔함 */
 .board-piece { position: absolute; margin: 0; pointer-events: none; user-select: none; -webkit-user-drag: none; will-change: transform;
   animation: board-float var(--dur, 10s) ease-in-out var(--delay, 0s) infinite alternate; }
 @keyframes board-float {   /* 아주 느린 둥둥: 위아래·좌우 소폭 + 아주 작은 회전 (transform 만) */
@@ -724,9 +726,9 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 #a11y-sw3:focus-visible #a11y-track3 { box-shadow: 0 0 0 3px rgba(143, 243, 250, .5); }
 #a11y-desc3 { margin: 8px 0 0; font-size: 18px; line-height: 1.45; color: rgba(200, 235, 240, .8); word-break: keep-all; }
 .a11y-sub { margin: 12px 0 0 6px; padding-left: 16px; border-left: 2px solid rgba(95, 212, 224, .4); }   /* 소리 끄기 하위: 배경음 끄기 / 효과음 끄기 */
-.a11y-subrow { display: flex; align-items: center; justify-content: flex-start; gap: 14px; }   /* 글자 바로 옆에 스위치 */
+.a11y-subrow { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }   /* 스위치는 위쪽 스위치들과 같은 오른쪽 줄에 맞추고, 글자는 그 바로 왼쪽에 붙음 */
 .a11y-subrow + .a11y-subrow { margin-top: 14px; }
-.a11y-sublabel { min-width: 6.4em; text-align: right; white-space: nowrap; font-family: var(--font-title); font-weight: 600; font-size: 18px; color: #eefcff; }   /* 글자를 스위치 쪽으로 붙이고 오른쪽 끝을 맞춰서 두 스위치의 세로 위치가 같게 */
+.a11y-sublabel { white-space: nowrap; font-family: var(--font-title); font-weight: 600; font-size: 18px; color: #eefcff; }
 .a11y-subsw { flex: none; display: flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--font-title); font-weight: 600; font-size: 15px; color: #d8f7fa; }
 .a11y-subtrack { position: relative; width: 48px; height: 26px; box-sizing: border-box; border-radius: 13px; border: 2px solid #5fd4e0; background: rgb(10, 25, 45); }
 .a11y-subtrack::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #8aa0aa; transition: left .15s ease, background .15s ease; }
@@ -2735,6 +2737,12 @@ var Board = (function () {
       spins: arcs.length > 1 ? [[arcs[0], 4 / 3], [arcs[1], -8 / 9]] : [] };   // 기본 45도/초 기준: 6초 한 바퀴(시계), 9초 한 바퀴(반시계)
   }
   // 분석 대기 연출 한 번. 끝나면(화면이 닫힌 뒤) resolve. 정답이면 정답 연출까지, 아니면 대기만 하고 바로 닫음
+  function anaRelease() {   // 아이폰: 가려 둔 뒤 화면(배경·타임라인·카드·토리 통신·조각)을 서서히 되돌림
+    var h = document.documentElement;
+    if (!h.classList.contains('ana-running')) return;
+    h.classList.add('ana-reveal'); h.classList.remove('ana-running');
+    setTimeout(function () { h.classList.remove('ana-reveal'); }, 700);
+  }
   function runAnalysisSequence(g) {
     return new Promise(function (resolve) {
       anaBuild(); var R = anaRefs, ok = !!(g && g.ok), still = anaStill(), t0 = performance.now(), timers = [], raf = 0, anims = [];
@@ -2788,7 +2796,8 @@ var Board = (function () {
         anims.forEach(function (a) { try { a.cancel(); } catch (_) {} });
         window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKey, true); anaEl.removeEventListener('click', onClick);
         Array.prototype.slice.call(anaEl.querySelectorAll('.ana-p')).forEach(function (p) { p.parentNode.removeChild(p); });
-        document.documentElement.classList.remove('ana-running'); anaBusy = false; syncTools();
+        if (!IS_IPHONE) document.documentElement.classList.remove('ana-running');   // 아이폰: 결과 화면이 끝날 때까지(실패: 닫을 때 / 성공: 톺아보기를 누를 때) 뒤 화면을 계속 가려 둠 (anaRelease)
+        anaBusy = false; syncTools();
         if (anaEl && anaEl.parentNode) anaEl.parentNode.removeChild(anaEl);   // 다음 시행에 이전 상태가 남아 충돌하지 않도록 매번 새로 만듦
         anaEl = null; anaRefs = null;
       }
@@ -2823,6 +2832,7 @@ var Board = (function () {
         R.tori2.style.visibility = ''; R.tori.style.visibility = 'hidden'; R.tori3.style.visibility = 'hidden';   // 정답: 커지며 파티클이 터지는 장면부터 happy / 실패: sad
         if (ok) R.orb.classList.add('ana-green');   // 성공: 커지면서 원 테두리·링이 초록으로 (색 변화라 설정과 무관)
         if (!ok) R.orb.classList.add('ana-redden');   // 실패: 다시 커지면서 원 테두리·링이 붉어짐 (움직임이 아니라 색이므로 설정과 무관)
+        if (!ok) BGM.play('board', { fade: 1.5 });   // 실패: 토리가 다시 커지는 순간부터 타임라인 배경음이 서서히 돌아옴
         if (!ok) {   // 실패: 팝·파티클 없이 맥없이 조금 더 쪼그라들었다가 느릿하게 원래 크기로 (피융…)
           if (still) { moveAside(); return; }
           if (shrinkAnim) { shrinkAnim.cancel(); shrinkAnim = null; }   // 줄어든 상태(fill)를 남겨 두면 복귀가 끝난 뒤 다시 작아지므로 취소. 복귀 애니메이션이 같은 크기에서 바로 이어받음
@@ -2867,7 +2877,7 @@ var Board = (function () {
     var g = gradeBoard();
     if (anaBusy) return;
     runAnalysisSequence(g).then(function () {   // 분석 대기 연출 뒤에 기존 흐름
-      if (g.ok) showSuccess(); else { lastAnswer = ''; BGM.play('board', { fade: 1 }); showFail(g); }   // 실패하면 타임라인 배경음이 다시 서서히 돌아옴
+      if (g.ok) showSuccess(); else { lastAnswer = ''; showFail(g); }
     });
   }
   function resButtons(list) {
@@ -2887,6 +2897,7 @@ var Board = (function () {
   }
   function closeRes() {
     if (!resOpen) return;
+    if (resMode === 'fail') anaRelease();   // 실패 결과 창이 사라지면 타임라인이 나타남
     resOpen = false; resEl.classList.remove('board-open');
     if (resMode === 'ok') {
       lastAnswer = ''; if (boardSolved) Comm.setSolved(true);
@@ -2921,6 +2932,7 @@ var Board = (function () {
     updateConfirm();
   }
   function resetSolved() {
+    anaRelease();
     if (BGM.now() === 'clear') BGM.play('board', { fade: 1 });   // 다시 풀기로 돌아가면 타임라인 배경음으로
     boardSolved = false; lastAnswer = ''; revealed = false; applyReveal(false); if (typeof Comm !== 'undefined') Comm.setSolved(false);
     cards.forEach(function (k) { k.solved = false; k.el.classList.remove('board-okc'); });
@@ -3152,6 +3164,7 @@ var Board = (function () {
   }
   function openCmp() {
     if (cmpOpen) return;
+    anaRelease();   // 성공: 톺아보기를 누르면 배경이 돌아옴
     var forged = CARD_DATA.filter(function (d) { return d.isForged; })[0] || {};
     var badSents = (forged.text || '').split(/(?<=\.)\s+/);   // 위조 본문을 문장 단위로 (글자 그대로)
     var bad = $('board-czBadB'); bad.textContent = '';
