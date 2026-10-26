@@ -191,7 +191,7 @@ html.calm-mode #intro-namePanel.intro-pop { animation: intro-popfade .2s ease-ou
 #board-ana .ana-cssring.r3 { inset: 12px; border: 3px dashed currentColor; opacity: .4; }
 #board-scene.board-dragging .board-piece { animation-play-state: paused; }
 html.is-iphone.ana-running .board-piece { visibility: hidden; }   /* 아이폰: 어두운 막 뒤라 거의 안 보이므로 아예 그리지 않음 (자주 실패하면 분석 화면에서 튕기던 문제 대응) */
-html.is-iphone.ana-running #board-world, html.is-iphone.ana-running #board-comm, html.is-iphone.ana-running #board-cards, html.is-iphone.ana-running .board-edge { visibility: hidden; }   /* 아이폰: 분석 화면이 뜬 동안 어두운 막 뒤의 큰 화면 층(타임라인·토리 통신·카드)은 그리지 않음 (메모리 절약). 배경 그림은 그대로 남아 막 뒤로 비침 */
+html.is-iphone.ana-running #board-clip, html.is-iphone.ana-running #board-comm, html.is-iphone.ana-running #board-cards, html.is-iphone.ana-running .board-edge, html.is-iphone.ana-running #board-confirm, html.is-iphone.ana-running #board-sbar, html.is-iphone.ana-running #board-srcbtn { visibility: hidden; }   /* 아이폰: 분석 화면이 뜬 동안 어두운 막 뒤의 큰 화면 층(배경·타임라인·토리 통신·카드·타임라인 수정하기 버튼)은 그리지 않음 (메모리 절약). 뒤가 어중간하게 비치는 것보다 깔끔함 */
 .board-piece { position: absolute; margin: 0; pointer-events: none; user-select: none; -webkit-user-drag: none; will-change: transform;
   animation: board-float var(--dur, 10s) ease-in-out var(--delay, 0s) infinite alternate; }
 @keyframes board-float {   /* 아주 느린 둥둥: 위아래·좌우 소폭 + 아주 작은 회전 (transform 만) */
@@ -1431,9 +1431,90 @@ var SFX = {
     return end;
   }
 };
+// ============================================================
+// 배경음: <audio> 하나로 스트리밍 재생 (소리를 통째로 풀어 메모리에 올리지 않음). 곡마다 주소만 바꿔 끼움 → 아이폰도 첫 터치에서 한 번 풀리면 계속 재생됨
+// 모든 곡은 반복. 반복할 때는 곡 끝에서만 줄어들고 다시 처음부터 이어짐. 소리 끄기(접근성)는 효과음과 같은 출구(SFX.mute)를 지남
+// ============================================================
+var BGM = (function () {
+  'use strict';
+  var DIR = 'audio/';
+  var TRACKS = { intro: 'bgm_1.mp3', quake: 'bgm_2.mp3', board: 'bgm_3.mp3', clear: 'bgm_4.mp3' };   // 인트로 / 흔들림 뒤 / 타임라인 / 분석 성공
+  var LEVEL = 0.35;        // 배경음 크기 (효과음·말소리보다 작게). 여기 한 곳에서 조절
+  var LOOP_FADE = 1.5;     // 반복할 때 곡 끝에서 줄어드는 시간(초)
+  var el = null, gain = null, cur = '', tok = 0, stopT = null, ending = false, hiddenPaused = false, vt = 0;
+
+  function ensure() {
+    if (el) return true;
+    if (!SFX.ctx || !SFX.mute) return false;     // 첫 사용자 입력 전에는 만들지 않음
+    el = new Audio(); el.preload = 'auto';
+    try {
+      var s = SFX.ctx.createMediaElementSource(el);
+      gain = SFX.ctx.createGain(); gain.gain.value = LEVEL;
+      s.connect(gain); gain.connect(SFX.mute);
+    } catch (_) { gain = null; el.volume = LEVEL; }
+    el.addEventListener('ended', function () {   // 반복: 처음부터 바로 이어서 (끝에서 이미 줄어 있었으므로 크기는 즉시 복구)
+      if (!cur) return;
+      ending = false; ramp(LEVEL, 0);
+      try { el.currentTime = 0; } catch (_) {}
+      kick();
+    });
+    setInterval(tick, 100);
+    return true;
+  }
+  function kick() { try { var p = el.play(); if (p && p.catch) p.catch(function () {}); } catch (_) {} }
+  function ramp(to, sec, from) {
+    if (!el) return;
+    if (gain && SFX.ctx) {
+      var g = gain.gain, t = SFX.ctx.currentTime;
+      try {
+        g.cancelScheduledValues(t); g.setValueAtTime(from != null ? from : g.value, t);
+        if (sec > 0) g.linearRampToValueAtTime(to, t + sec); else g.setValueAtTime(to, t);
+      } catch (_) {}
+      return;
+    }
+    clearInterval(vt);                            // 소리 조절 노드가 없을 때: 기본 볼륨으로 (아이폰은 볼륨 조절이 안 되어 즉시 바뀜)
+    if (from != null) el.volume = from;
+    if (sec <= 0) { el.volume = to; return; }
+    var v0 = el.volume, t0 = Date.now();
+    vt = setInterval(function () { var k = Math.min(1, (Date.now() - t0) / (sec * 1000)); el.volume = v0 + (to - v0) * k; if (k >= 1) clearInterval(vt); }, 50);
+  }
+  function tick() {
+    if (!el) return;
+    if (!gain) el.muted = !!SFX.muted;
+    if (el.paused || !cur || !isFinite(el.duration) || el.duration < LOOP_FADE * 3) return;
+    var rem = el.duration - el.currentTime;
+    if (!ending && rem <= LOOP_FADE + 0.1) { ending = true; ramp(0, Math.max(0.1, rem - 0.05)); }
+  }
+  function halt() { if (el) { try { el.pause(); } catch (_) {} } cur = ''; ending = false; hiddenPaused = false; }
+
+  function play(name, o) {   // o.fade: 시작할 때 서서히 커지는 시간(초). 없으면 바로. 재생 중이던 곡은 즉시 교체
+    var fade = (o && o.fade) || 0;
+    if (!TRACKS[name] || !ensure()) return;
+    tok++; clearTimeout(stopT); ending = false; hiddenPaused = false;
+    cur = name;
+    el.src = DIR + TRACKS[name];
+    if (!gain) el.muted = !!SFX.muted;
+    if (fade > 0) { ramp(0, 0, 0); ramp(LEVEL, fade, 0); } else ramp(LEVEL, 0);
+    kick();
+  }
+  function stop(sec) {       // sec 초 동안 줄이며 끄기 (0 이면 뚝 끊음)
+    if (!el || !cur) return;
+    var my = ++tok; clearTimeout(stopT);
+    if (sec > 0) { ramp(0, sec); stopT = setTimeout(function () { if (my === tok) halt(); }, sec * 1000 + 60); } else halt();
+  }
+  function visible(on) {     // 탭이 숨겨지면 멈추고, 돌아오면 이어서
+    if (!el || !cur) return;
+    if (!on) { if (!el.paused) { el.pause(); hiddenPaused = true; } }
+    else if (hiddenPaused) { hiddenPaused = false; kick(); }
+  }
+  // 브라우저가 소리를 막아 재생이 시작되지 못했다면 다음 터치·키 입력에서 한 번 더 시도
+  ['pointerup', 'touchend', 'keydown'].forEach(function (ev) { window.addEventListener(ev, function () { if (el && cur && el.paused && !hiddenPaused && !document.hidden) kick(); }, true); });
+  return { play: play, stop: stop, visible: visible, now: function () { return cur; } };
+})();
 // 첫 사용자 입력(터치·클릭·키)에서 소리 켜기. 탭이 숨겨지면 멈추고, 돌아오면 이어 감
 ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'keydown', 'click'].forEach(function (ev) { window.addEventListener(ev, SFX.unlock, true); });
 document.addEventListener('visibilitychange', function () {
+  BGM.visible(!document.hidden);
   var c = SFX.ctx; if (!c) return;
   if (document.hidden) {
     var w = SFX.humWanted; SFX.humStop(0); SFX.humWanted = w;       // 숨겨지면 hum 정지(복귀 시 빛에 맞춰 다시 시작)
@@ -1612,6 +1693,7 @@ var Intro = (function () {
   }
   function shake() {
     SFX.play('thump');
+    BGM.stop(0);                       // 흔들림·효과음이 나올 때 배경음은 뚝 끊음
     stopShake();
     if (document.documentElement.classList.contains('calm-mode')) return;   // 흔들림·움직임 줄이기: 화면은 흔들지 않음 (소리·타이밍은 그대로)
     shaker.animate(shakeFrames(), { duration: SHAKE_MS });
@@ -1655,6 +1737,8 @@ var Intro = (function () {
     clearTimeout(timer);
     waiting = false; waitEl.style.display = 'none';
     input.disabled = false; nameBtn.disabled = false;
+    clearTimeout(bgmTimer);
+    if (i === 0) BGM.play('intro');     // 시작하자마자 첫 배경음 (반복)
     idx = i;
     var item = SCRIPT[i];
     bg2.classList.toggle('intro-on', item.action === 'orb');   // 타임 코스모스 안내 대사에서 배경이 코스모스가 있는 복도로 서서히 바뀜
@@ -1682,6 +1766,7 @@ var Intro = (function () {
     if (item.action === 'shake') {       // 흔들림 → 0.3초 정지 → 타이핑
       bubble.style.visibility = 'hidden';
       shake();
+      bgmTimer = setTimeout(function () { if (active) BGM.play('quake', { fade: 2 }); }, SHAKE_MS);   // 흔들림이 끝나면 두 번째 배경음이 서서히 시작 (반복)
       timer = setTimeout(function () { bubble.style.visibility = 'visible'; step(); }, SHAKE_MS + 300);
     } else {
       step();
@@ -1698,7 +1783,7 @@ var Intro = (function () {
   }
 
   var PANEL_DELAY_MS = 1230;   // 코드네임 요청 대사가 끝난 뒤 입력창이 나타나기까지 기다리는 시간
-  var popTimer = null, panelDelay = null;
+  var popTimer = null, panelDelay = null, bgmTimer = null;
   function popPanel() {   // 입력창 '또링?!' 등장: 애니메이션 + 효과음 한 번, 끝나면 입력칸에 포커스
     panel.classList.remove('intro-pop'); void panel.offsetWidth; panel.classList.add('intro-pop');
     SFX.play('namePop', AUDIO.level.namePop);
@@ -1819,7 +1904,7 @@ var Intro = (function () {
   function off() {
     active = false;
     binds.forEach(function (b) { b[0].removeEventListener(b[1], b[2], b[3]); });
-    clearTimeout(timer); clearTimeout(shakeTimer);
+    clearTimeout(timer); clearTimeout(shakeTimer); clearTimeout(bgmTimer);
     stopShake();
     typing = false; yesBtn.classList.remove('intro-on'); clearTimeout(panelDelay);
     orb.classList.remove('intro-pulse', 'intro-active');
@@ -2723,6 +2808,7 @@ var Board = (function () {
           later(moveAside, 700);
           return;
         }
+        BGM.play('clear', { fade: 0.3 });   // 성공: 원과 토리가 커지는 순간부터 네 번째 배경음 (반복). 실패일 때는 위에서 돌아가므로 바뀌지 않음
         if (still) { moveAside(); return; }   // 움직임 줄이기: 작아졌다 커짐·파티클은 건너뜀. 호 회전과 정답 이동·펼침은 그대로 보임
         if (shrinkAnim) { shrinkAnim.cancel(); shrinkAnim = null; }
         SFX.play('anaPop', AUDIO.level.ana);
@@ -2756,8 +2842,9 @@ var Board = (function () {
     closeSub(); closeAudit();
     var g = gradeBoard();
     if (anaBusy) return;
+    BGM.stop(1);   // 최종 제출을 누르면 타임라인 배경음이 1초 동안 줄어들며 사라짐
     runAnalysisSequence(g).then(function () {   // 분석 대기 연출 뒤에 기존 흐름
-      if (g.ok) showSuccess(); else { lastAnswer = ''; showFail(g); }
+      if (g.ok) showSuccess(); else { lastAnswer = ''; BGM.play('board', { fade: 0.6 }); showFail(g); }   // 실패하면 타임라인 배경음이 다시 서서히 돌아옴
     });
   }
   function resButtons(list) {
@@ -2811,6 +2898,7 @@ var Board = (function () {
     updateConfirm();
   }
   function resetSolved() {
+    if (BGM.now() === 'clear') BGM.play('board', { fade: 0.4 });   // 다시 풀기로 돌아가면 타임라인 배경음으로
     boardSolved = false; lastAnswer = ''; revealed = false; applyReveal(false); if (typeof Comm !== 'undefined') Comm.setSolved(false);
     cards.forEach(function (k) { k.solved = false; k.el.classList.remove('board-okc'); });
     sceneEl.classList.remove('board-solved'); syncTools();
@@ -3660,6 +3748,7 @@ var Flow = (function () {
     if (locked) return;
     locked = true;
     SFX.play('whoosh');                           // 흰 화면이 덮일 때까지 점점 높고 커지는 소리
+    BGM.stop(FADE_IN_MS / 1000);                  // 인트로 배경음은 흰 화면이 덮이는 동안 줄어듦
     Intro.off();                                  // 인트로 이벤트·타이머 정리 (입력 잠금)
     white.style.display = 'block';
     var fadeIn = white.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_IN_MS, easing: 'ease-in', fill: 'forwards' });
@@ -3671,6 +3760,7 @@ var Flow = (function () {
       })
       .then(function () {
         SFX.play('breath');                       // 걷히는 동안 아주 작은 숨소리
+        BGM.play('board', { fade: 0.4 });         // 타임라인이 보이면 세 번째 배경음 (반복)
         var fadeOut = white.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE_OUT_MS, easing: 'ease-out', fill: 'forwards' });
         return fadeOut.finished;
       })
