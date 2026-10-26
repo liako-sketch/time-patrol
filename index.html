@@ -557,7 +557,7 @@ html.is-iphone.ana-running .board-piece { visibility: hidden; }   /* 아이폰: 
 .board-g-S .board-gletter { animation: board-gbreath 3.6s ease-in-out infinite; }
 @keyframes board-gradein { from { opacity: 0; } to { opacity: 1; } }
 @keyframes board-gbreath { 0%, 100% { box-shadow: 0 0 22px var(--hl-glow), inset 0 0 12px var(--hl-glow); } 50% { box-shadow: 0 0 42px var(--hl-glow), inset 0 0 22px var(--hl-glow); } }
-@media (prefers-reduced-motion: reduce) { #board-rgrade { animation: none; } .board-g-S .board-gletter { animation: none; } }
+html.calm-mode #board-rgrade, html.calm-mode .board-g-S .board-gletter { animation: none; }   /* 움직임 줄이기(앱 안 설정)에 연결. OS 설정과는 무관 */
 #board-rmain { margin: 0; font-family: var(--font-title); font-weight: 600; font-size: 48px; line-height: 1.35; color: #8ff3fa; text-shadow: 0 0 14px rgba(110, 240, 250, .55); word-break: keep-all; }
 #board-rbody { margin-top: 22px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; font-family: var(--font-body); font-weight: 400; font-size: 26px; line-height: 1.5; color: rgba(200, 235, 240, .9); word-break: keep-all; }
 #board-rbody p { margin: 0; }
@@ -596,7 +596,7 @@ html.colorblind-mode mark.board-kmk-req, html.colorblind-mode mark.board-kmk-bon
 .board-kw.board-lit { border-color: var(--ok-main); background: var(--ok-main); color: #04141f; font-weight: 600; box-shadow: 0 0 14px var(--ok-glow); }
 .board-kw.board-bonus.board-lit { border-color: var(--tori-hl); background: var(--tori-hl); box-shadow: 0 0 14px var(--hl-glow); }
 html.colorblind-mode .board-kw.board-lit::before { content: '\2713\00a0'; }   /* 색약 모드: 색 말고 모양(✓)으로도 구분 */
-@media (prefers-reduced-motion: reduce) { .board-kw { transition: none; } }
+html.calm-mode .board-kw { transition: none; }
 #board-rbtns { display: flex; gap: 24px; margin-top: 28px; flex-wrap: wrap; }
 #board-cmp { position: absolute; inset: 0; z-index: 215; background: rgba(2, 8, 20, .96); display: flex; flex-direction: column; box-sizing: border-box; padding: 28px 90px 24px; opacity: 0; visibility: hidden; transition: opacity .3s ease, visibility 0s linear .3s; }
 #board-cmp.board-open { opacity: 1; visibility: visible; transition: opacity .3s ease; }
@@ -760,7 +760,7 @@ html.colorblind-mode #board-czOk .board-badge::before { content: '\25CB  '; }
   0%, 100% { box-shadow: 0 4px 12px rgba(0,0,0,.45), 0 0 20px rgba(255, 213, 74, .22), inset 0 0 18px rgba(255, 213, 74, .08); }
   50% { box-shadow: 0 4px 12px rgba(0,0,0,.45), 0 0 20px rgba(255, 213, 74, .55), inset 0 0 18px rgba(255, 213, 74, .16); }
 }
-@media (prefers-reduced-motion: reduce) { #board-scene .board-card.board-hl.board-hl-pulse { animation: none !important; } }
+html.calm-mode #board-scene .board-card.board-hl.board-hl-pulse { animation: none !important; }
 .board-card.board-hl .board-t { color: var(--hl-main); text-shadow: none; }
 .board-card.board-hl .board-tag { color: var(--hl-main); background: rgba(255, 213, 74, .16); border-color: rgba(255, 213, 74, .45); text-shadow: none; }
 .board-card.board-hl::after { background:
@@ -924,7 +924,7 @@ html.colorblind-mode #board-czOk .board-badge::before { content: '\25CB  '; }
   <div id="a11y-row"><span id="a11y-label">색약 도움 모드</span><button id="a11y-sw" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label"><span id="a11y-track"></span><span id="a11y-state">꺼짐</span></button></div>
   <p id="a11y-desc">붉은색과 녹색이 헷갈리는 친구를 위해 모양과 색을 바꿔 보여 줘요.</p>
   <div id="a11y-row2"><span id="a11y-label2">흔들림·움직임 줄이기</span><button id="a11y-sw2" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label2"><span id="a11y-track2"></span><span id="a11y-state2">꺼짐</span></button></div>
-  <p id="a11y-desc2">화면 흔들림, 배경 조각이 둥둥 떠다니는 움직임, 글자가 반짝이는 효과, 분석 화면에서 원이 작아졌다 커지며 파티클이 터지는 효과, 이름 입력창이 통통 튀며 나타나는 효과를 멈춰요.</p>
+  <p id="a11y-desc2">화면 흔들림, 배경 조각이 둥둥 떠다니는 움직임, 글자가 반짝이는 효과, 분석 화면에서 원이 작아졌다 커지며 파티클이 터지는 효과, 이름 입력창이 통통 튀며 나타나는 효과, 결과 화면 등급 배지의 움직임, 키워드 칩이 켜지는 전환, 카드 하이라이트 깜빡임을 멈춰요.</p>
   <div id="a11y-row3"><span id="a11y-label3">소리 끄기 (음소거)</span><button id="a11y-sw3" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label3"><span id="a11y-track3"></span><span id="a11y-state3">꺼짐</span></button></div>
   <p id="a11y-desc3">배경 울림, 효과음, 토리가 말할 때 나는 소리를 모두 꺼요. 화면과 글자는 그대로예요.</p>
   <p id="a11y-note">이 설정들은 이 기기 브라우저에만 저장되며 서버로 전송되지 않습니다.</p>
@@ -2846,7 +2846,7 @@ var Board = (function () {
       });
       c2.appendChild(kw);
       body.appendChild(c2);
-      var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;   // 모션 줄이기: 처음부터 켜진 상태
+      var still = document.documentElement.classList.contains('calm-mode');   // 움직임 줄이기: 처음부터 켜진 상태
       litChips.forEach(function (c, i) { if (still) c.classList.add('board-lit'); else setTimeout(function () { c.classList.add('board-lit'); }, 150 * (i + 1)); });
       var c3 = el('div', 'board-rcell'); c3.appendChild(el('h3', '', 'Gemini 일치도')); c3.appendChild(el('p', 'board-rdim', '서버 연결 후 표시됩니다')); body.appendChild(c3);
     }, [{ label: '오류 사료 톺아보기', fn: openCmp }]);   // 닫기 없음: 반드시 톺아보게 함
@@ -3343,7 +3343,6 @@ var Board = (function () {
     var shown = false, talking = false, busy = false, mode = 'idle';   // mode: idle | explain | effect
     var typeTimer = null, revertTimer = null, startTimer = null, idleTimer = null, fxTimers = [];
     var angle = 0, speed = 360 / C.spinNormalSec, glitchOff = 0, curPose = '';
-    var reduceMq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
 
     // 통신 링 (SVG 3겹: 본체 + 글리치용 색 분리 2장). 숫자는 쓰지 않음
     function ringSvg(cls) {
