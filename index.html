@@ -302,8 +302,6 @@ html.is-iphone.ana-running #board-bg, html.is-iphone.ana-running #board-clip, ht
 .board-card.board-drag { cursor: grabbing; z-index: 60; transition: filter .18s, box-shadow .18s; box-shadow: 0 14px 26px rgba(0,0,0,.55), 0 0 0 2px rgba(120,255,240,.25); }
 .board-card.board-return { z-index: 55; }   /* 이동은 JS 가 transform 으로 움직임 (배치를 매 프레임 다시 계산하지 않음) */
 
-.board-fx { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 65; }
-.board-fx i { position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: rgb(110, 230, 240); opacity: 0; }
 .board-ripple { position: absolute; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; box-sizing: border-box;
   border: 2px solid rgba(150, 255, 248, 0.9); pointer-events: none; z-index: 70; animation: board-ripple .6s ease-out forwards; }
 .board-ripple.board-err { border: 1.5px solid rgba(255, 77, 94, 0.7); }
@@ -1999,8 +1997,7 @@ var Board = (function () {
     handBottomMargin: 40,     // 손패 카드 아래 끝 ~ 무대 아래 끝 간격
     zoomScale: 1.9,
     scrollArrowSize: 36,      // 양쪽 끝 ◀ ▶ 글자 크기(px). 눌리는 영역은 100x100 고정
-    magnetRadius: 290,        // 칸 중심에서 이 거리 안이면 끌려 들어가고, 놓으면 항상 붙음
-    readyRadius: 180,         // 칸이 밝게 켜지는 거리 (번짐 그림자라 넓히면 아이폰에서 다시 그리는 일이 늘어 따로 둠)
+    magnetRadius: 180,        // 칸 중심에서 이 거리 안이면 끌려 들어가고, 놓으면 항상 붙음
     edgeZone: 140,            // 자동 스크롤 감지 폭
     autoScrollMax: 900,       // 자동 스크롤 최대 속도(px/초)
     dragThreshold: 6,         // 이 픽셀 이상 움직여야 '끌기'
@@ -2385,53 +2382,21 @@ var Board = (function () {
     SFX.play('select');
   }
   // 가장 가까운 칸 하나만 (1번 칸은 고정이라 제외, 오류 칸은 보일 때만)
-  function nearestSlot(cx, cy, ex) {
+  function nearestSlot(cx, cy) {
     var best = -1, bd = L.magnetRadius, last = ERR;
     for (var i = 1; i <= last; i++) {
-      if (i === ex) continue;   // 칸에서 막 뗀 카드는 그 칸을 벗어나기 전까지 자석 없음
       var d = Math.hypot(cx - slotCX(i), cy - slotCY());
       if (d < bd) { bd = d; best = i; }
     }
     return { i: best, d: bd };
   }
-  // 가루: 끌림 반경 안에서 카드에서 칸 중심으로 빨려 들어가는 작은 점들(카드 테두리와 같은 색). 위치·투명도(transform/opacity)만 바꾸고 그림자·블러는 쓰지 않음. 움직임 줄이기가 켜지면 없음
-  var fxEl = null, fxDots = [], fxT = 0, FX_N = IS_IPHONE ? 6 : 10;
-  function fxPerim(d, dx, dy) {   // 칸이 있는 쪽을 향한 변 위의 무작위 지점 (카드 중심 기준 -0.5~0.5). 방향에 가까운 변일수록 더 자주 고름. 방향이 안 정해질 만큼 겹쳤으면 네 변 모두
-    var len = Math.hypot(dx, dy), ux = len > 20 ? dx / len : 0, uy = len > 20 ? dy / len : 0;
-    var w = len > 20 ? [Math.max(0, ux), Math.max(0, -ux), Math.max(0, uy), Math.max(0, -uy)] : [1, 1, 1, 1];   // 오른쪽·왼쪽·아래·위
-    var r = Math.random() * (w[0] + w[1] + w[2] + w[3]), s = 0;
-    while (s < 3 && r >= w[s]) { r -= w[s]; s++; }
-    var t = Math.random() - 0.5;
-    if (s === 0) { d.ox = 0.5; d.oy = t; } else if (s === 1) { d.ox = -0.5; d.oy = t; } else if (s === 2) { d.oy = 0.5; d.ox = t; } else { d.oy = -0.5; d.ox = t; }
-  }
-  function fxUpdate(si, pull, ccx, ccy) {
-    if (si < 0 || document.documentElement.classList.contains('calm-mode')) { if (fxEl) fxEl.style.display = 'none'; return; }
-    if (!fxEl) {
-      fxEl = document.createElement('div'); fxEl.className = 'board-fx'; cardsEl.appendChild(fxEl);
-      for (var k = 0; k < FX_N; k++) { var e = document.createElement('i'); fxEl.appendChild(e); fxDots.push({ e: e, u: k / FX_N, ox: 99, oy: 0 }); }   // ox 99 = 아직 시작점 안 정함 (아래에서 칸 방향을 보고 정함)
-    }
-    var now = performance.now(), dt = Math.min(0.05, (now - fxT) / 1000); fxT = now;
-    fxEl.style.display = '';
-    var cx = slotCX(si), cy = slotCY();
-    fxDots.forEach(function (d) {
-      d.u += dt * 1.1;
-      if (d.u >= 1) { d.u -= 1; fxPerim(d, cx - ccx, cy - ccy); }
-      if (d.ox === 99) fxPerim(d, cx - ccx, cy - ccy);
-      var m = d.u * d.u, k = 1 - m;   // 카드 위 한 점에서 떠올라 칸 중심으로 갈수록 빨라지며 빨려 들어감
-      d.e.style.transform = 'translate3d(' + (ccx + (cx - ccx) * m + d.ox * L.cardW * k).toFixed(1) + 'px,' + (ccy + (cy - ccy) * m + d.oy * L.cardH * k).toFixed(1) + 'px,0)';
-      d.e.style.opacity = (Math.min(1, Math.sin(d.u * Math.PI) * 1.6) * Math.min(1, pull * 2 + 0.4)).toFixed(2);
-    });
-  }
-  function fxHide() { if (fxEl) fxEl.style.display = 'none'; }
   // 끄는 중 카드 표현: 반경 안이면 칸 중심 쪽으로 끌려가고 기울기/떠오름이 줄어듦
   function applyDrag() {
     var c = drag.card; if (!c) return;
     var hcx = drag.px - drag.gx + L.cardW / 2, hcy = drag.py - drag.gy + L.cardH / 2;
-    var ex = drag.ex != null && !drag.esc ? drag.ex : -1;
-    if (ex >= 0 && Math.hypot(hcx - slotCX(ex), hcy - slotCY()) >= L.magnetRadius) { drag.esc = true; ex = -1; }   // 원래 칸의 끌림 범위 밖으로 한 번 나가면 그때부터 자석이 평소처럼 켜짐
-    var n = ex >= 0 ? { i: -1, d: L.magnetRadius } : nearestSlot(hcx, hcy), pull = 0, cx = hcx, cy = hcy, w = L.cardW, h = L.cardH;
+    var n = nearestSlot(hcx, hcy), pull = 0, cx = hcx, cy = hcy, w = L.cardW, h = L.cardH;
     if (n.i >= 0) {
-      var t = 1 - n.d / L.magnetRadius; pull = Math.sin(t * Math.PI / 2);   // 멀리서부터 눈에 띄게 당겨지고 가까울수록 1에 가까워짐
+      var t = 1 - n.d / L.magnetRadius; pull = t * t * (3 - 2 * t);
       cx += (slotCX(n.i) - cx) * pull; cy += (slotCY() - cy) * pull;
       w += (L.slotW - w) * pull * 0.5; h += (L.slotH - h) * pull * 0.5;
     }
@@ -2439,9 +2404,7 @@ var Board = (function () {
     var bs = drag.base || { x: c.x, y: c.y, w: c.w, h: c.h };   // 끄는 동안 위치·크기는 배치를 바꾸지 않고 transform(이동·확대·기울기)만 바꿈
     c.el.style.transform = 'translate3d(' + (cx - (bs.x + bs.w / 2)).toFixed(2) + 'px,' + (cy - (bs.y + bs.h / 2) - 8 * q).toFixed(2) + 'px,0) rotate(' + (drag.tilt * q).toFixed(2) + 'deg) scale(' + ((w / bs.w) * (1 + 0.04 * q)).toFixed(4) + ',' + ((h / bs.h) * (1 + 0.04 * q)).toFixed(4) + ')';
     drag.box = { x: cx - w / 2, y: cy - h / 2, w: w, h: h };
-    var ri = n.i >= 0 && n.d < L.readyRadius ? n.i : -1;
-    if (ri !== drag.near) { drag.near = ri; slots.forEach(function (s, i) { s.classList.toggle('board-ready', i === ri); }); }
-    fxUpdate(n.i, pull, cx, cy);
+    if (n.i !== drag.near) { drag.near = n.i; slots.forEach(function (s, i) { s.classList.toggle('board-ready', i === n.i); }); }
   }
 
   // ===== 사료 설명 패널: 카드 데이터를 받아 채움 (지금은 고정 카드 1번에만 연결) =====
@@ -3283,7 +3246,7 @@ var Board = (function () {
       var u = Math.max(0, Math.min(1, (drag.sx - b.x) / b.w)), v = Math.max(0, Math.min(1, (drag.sy - b.y) / b.h));
       drag.gx = u * L.cardW; drag.gy = v * L.cardH;
       sceneEl.classList.add('board-dragging');   // 끄는 동안 배경 조각 둥둥·토리 링 회전을 잠시 멈춰 부담을 줄임
-      drag.active = true; drag.near = -1; drag.from = c.where; drag.ex = typeof c.where === 'number' ? c.where : null; drag.esc = false;   // 집은 자리(손패 또는 칸 번호)를 기억 → 교환·복귀에 씀
+      drag.active = true; drag.near = -1; drag.from = c.where;   // 집은 자리(손패 또는 칸 번호)를 기억 → 교환·복귀에 씀
       SFX.play('pickup');
       var vb = curBox(c); if (c._fa) { c._fa.cancel(); c._fa = null; } setBox(c, vb.x, vb.y, vb.w, vb.h);
       drag.base = { x: vb.x, y: vb.y, w: vb.w, h: vb.h }; drag.box = null;   // 끄는 동안은 이 상자를 기준으로 transform 만 바꿈
@@ -3318,7 +3281,7 @@ var Board = (function () {
     }
     try { stage.releasePointerCapture(e.pointerId); } catch (_) {}
     slots.forEach(function (s) { s.classList.remove('board-ready'); });
-    drag.near = -1; fxHide();
+    drag.near = -1;
     if (!c) { if (tap && !cancel && !moved) openDetail(tap); return; }
     if (was && drag.box) setBox(c, drag.box.x, drag.box.y, drag.box.w, drag.box.h);   // 놓은 순간의 보이는 자리를 실제 배치로 확정한 뒤 transform 을 걷음 (튀지 않게)
     drag.base = null; drag.box = null;
@@ -3508,7 +3471,7 @@ var Board = (function () {
     closeWarn(); closeAudit(); resetSolved();
     closeDetail(true);
     unzoom();
-    drag.pid = null; drag.active = false; drag.card = null; drag.bgScroll = false; drag.near = -1; fxHide();
+    drag.pid = null; drag.active = false; drag.card = null; drag.bgScroll = false; drag.near = -1;
     cards.forEach(function (c) { if (c._fa) { c._fa.cancel(); c._fa = null; } clearTimeout(c._rt); c.returning = false; c.el.classList.remove('board-drag', 'board-anim', 'board-snap', 'board-return'); c.el.style.transform = ''; });
     slots.forEach(function (s) { s.classList.remove('board-ready', 'board-flash'); });
     handCards.forEach(function (c) { c.where = 'hand'; });
