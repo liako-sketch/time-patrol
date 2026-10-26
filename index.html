@@ -191,6 +191,7 @@ html.calm-mode #intro-namePanel.intro-pop { animation: intro-popfade .2s ease-ou
 #board-ana .ana-cssring.r3 { inset: 12px; border: 3px dashed currentColor; opacity: .4; }
 #board-scene.board-dragging .board-piece { animation-play-state: paused; }
 html.is-iphone.ana-running .board-piece { visibility: hidden; }   /* 아이폰: 어두운 막 뒤라 거의 안 보이므로 아예 그리지 않음 (자주 실패하면 분석 화면에서 튕기던 문제 대응) */
+html.is-iphone.ana-running #board-world, html.is-iphone.ana-running #board-comm, html.is-iphone.ana-running #board-cards, html.is-iphone.ana-running .board-edge { visibility: hidden; }   /* 아이폰: 분석 화면이 뜬 동안 어두운 막 뒤의 큰 화면 층(타임라인·토리 통신·카드)은 그리지 않음 (메모리 절약). 배경 그림은 그대로 남아 막 뒤로 비침 */
 .board-piece { position: absolute; margin: 0; pointer-events: none; user-select: none; -webkit-user-drag: none; will-change: transform;
   animation: board-float var(--dur, 10s) ease-in-out var(--delay, 0s) infinite alternate; }
 @keyframes board-float {   /* 아주 느린 둥둥: 위아래·좌우 소폭 + 아주 작은 회전 (transform 만) */
@@ -571,7 +572,8 @@ html.calm-mode #board-rgrade, html.calm-mode .board-g-S .board-gletter { animati
 /* 성공 팝업: 가로로 넓힘 + "모범답안 | 내 답안" 두 칸 (같은 높이, 칸 안에서 스크롤, 좁으면 위아래) */
 #board-res.board-ok #board-rbox { width: 1800px; max-width: calc(100% - 120px); }
 /* 본문 스크롤 영역(overflow:auto)이 칸의 오른쪽 테두리·글로우를 가장자리에서 잘라 내 답안 칸 오른쪽 선이 흐려 보였음 → 안쪽 여백을 주고 바깥 여백으로 되돌려 칸 위치는 그대로 */
-#board-res.board-ok #board-rbody { padding: 0 16px 16px; margin-left: -16px; margin-right: -16px; }
+#board-res.board-ok #board-rbody { padding: 0 16px; margin-left: -16px; margin-right: -16px; }
+#board-rbody::after { content: ''; display: block; height: 16px; }   /* 아래 여백: 스크롤 영역의 padding-bottom 은 사파리에서 빠지는 일이 있어(마지막 칸 아래 선이 잘림) 빈 블록으로 대신함 */
 .board-rrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 14px; margin-top: 14px; }
 .board-rrow .board-rcell { margin-top: 0; min-width: 0; display: flex; flex-direction: column; }
 .board-rtext { min-height: 0; max-height: 260px; overflow-y: auto; overscroll-behavior: contain; }
@@ -2200,6 +2202,7 @@ var Board = (function () {
     renderScroll();
   }
   function elasticOf(raw) {   // 끝을 넘어 끈 거리 → 늘어난 길이 (저항이 점점 커짐)
+    if (maxScroll <= 0) return 0;   // 스크롤할 폭이 없는 화면(톺아본 뒤 한 줄 배치 등)은 늘어나지 않음
     var E = L.elasticMax, x = raw < 0 ? -raw : raw > maxScroll ? raw - maxScroll : 0;
     if (!x) return 0;
     var o = E * (1 - Math.exp(-0.55 * x / E));
@@ -2222,7 +2225,8 @@ var Board = (function () {
     if (!CAN_TRANSLATE) placeAll(false);   // translate 를 지원하지 않는 오래된 브라우저는 예전처럼 매번 위치를 다시 계산
     else for (var ci = 0; ci < cards.length; ci++) {
       var kc = cards[ci];
-      if (kc.where !== 'hand' && !(revLayout && kc.revIdx != null) && !(kc === drag.card && drag.active)) { kc.el.style.translate = (kc.sb - scrollPos + ov) + 'px 0px'; slid = true; }
+      if (revLayout && kc.revIdx != null) { if (!(kc === drag.card && drag.active)) kc.el.style.translate = ov ? ov + 'px 0px' : ''; }   // 한 줄 배치: 스크롤은 없고 늘어남(ov)만 따라감
+      else if (kc.where !== 'hand' && !(kc === drag.card && drag.active)) { kc.el.style.translate = (kc.sb - scrollPos + ov) + 'px 0px'; slid = true; }
     }
     clearTimeout(settleTimer);
     if (slid && Math.abs(ov) < 0.5) settleTimer = setTimeout(settleScroll, 160);
@@ -2627,7 +2631,7 @@ var Board = (function () {
     return new Promise(function (resolve) {
       anaBuild(); var R = anaRefs, ok = !!(g && g.ok), still = anaStill(), t0 = performance.now(), timers = [], raf = 0, anims = [];
       var shrinkAnim = null, angles = R.spins.map(function () { return 0; }), accelAt = 0, fast = false, curMult = 1, alive = true, canSkip = false, closing = false;
-      anaBusy = true; syncTools();
+      anaBusy = true; syncTools(); scrollVel = 0; scrollTarget = scrollPos;   // 굴러가던 관성도 멈춤
       function later(fn, ms) { var t = setTimeout(fn, ms); timers.push(t); return t; }
       // 초기화
       R.tori.style.visibility = ''; R.tori2.style.visibility = 'hidden'; R.tori3.style.visibility = 'hidden'; R.tori3.src = 'images/tori/tori_' + TORI_POSES.roading + '.webp'; R.tori2.src = 'images/tori/tori_' + (ok ? TORI_POSES.happy : TORI_POSES.sad) + '.webp';   // 매번 처음 표정(what)으로, 결과 표정은 미리 준비
@@ -3065,6 +3069,7 @@ var Board = (function () {
   }
 
   function onPointerDown(e) {
+    if (anaBusy) return;   // 분석 화면이 덮는 동안은 뒤 타임라인을 끌거나 카드를 집을 수 없음
     settleScroll();
     if (e.button > 0 || drag.pid !== null || detailCard) return;
     scrollTarget = scrollPos; scrollVel = 0; drag.sv = 0; drag.lt = e.timeStamp;   // 굴러가던 관성은 손을 대면 멈춤
@@ -3185,6 +3190,7 @@ var Board = (function () {
   // 휠 → 가로 스크롤
   function onWheel(e) {
     e.preventDefault();
+    if (anaBusy) return;
     if (drag.pid !== null || detailCard) return;
     scrollVel = 0;
     var d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
