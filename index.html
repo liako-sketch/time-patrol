@@ -302,6 +302,8 @@ html.is-iphone.ana-running #board-bg, html.is-iphone.ana-running #board-clip, ht
 .board-card.board-drag { cursor: grabbing; z-index: 60; transition: filter .18s, box-shadow .18s; box-shadow: 0 14px 26px rgba(0,0,0,.55), 0 0 0 2px rgba(120,255,240,.25); }
 .board-card.board-return { z-index: 55; }   /* 이동은 JS 가 transform 으로 움직임 (배치를 매 프레임 다시 계산하지 않음) */
 
+.board-fx { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 58; }
+.board-fx i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: #bffcf8; opacity: 0; }
 .board-ripple { position: absolute; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; box-sizing: border-box;
   border: 2px solid rgba(150, 255, 248, 0.9); pointer-events: none; z-index: 70; animation: board-ripple .6s ease-out forwards; }
 .board-ripple.board-err { border: 1.5px solid rgba(255, 77, 94, 0.7); }
@@ -711,7 +713,7 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 #a11y-sw[aria-checked="true"] #a11y-track::after { left: 31px; background: #8ff3fa; }
 #a11y-sw:focus-visible #a11y-track { box-shadow: 0 0 0 3px rgba(143, 243, 250, .5); }
 #a11y-desc { margin: 8px 0 0; font-size: 18px; line-height: 1.45; color: rgba(200, 235, 240, .8); word-break: keep-all; }
-#a11y-row2 { margin-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+#a11y-row2 { margin-top: 34px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 #a11y-label2 { font-family: var(--font-title); font-weight: 600; font-size: 22px; color: #eefcff; }
 #a11y-sw2 { flex: none; display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--font-title); font-weight: 600; font-size: 18px; color: #d8f7fa; }
 #a11y-track2 { position: relative; width: 60px; height: 32px; box-sizing: border-box; border-radius: 16px; border: 2px solid #5fd4e0; background: rgb(10, 25, 45); }
@@ -720,7 +722,7 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 #a11y-sw2[aria-checked="true"] #a11y-track2::after { left: 31px; background: #8ff3fa; }
 #a11y-sw2:focus-visible #a11y-track2 { box-shadow: 0 0 0 3px rgba(143, 243, 250, .5); }
 #a11y-desc2 { margin: 8px 0 0; font-size: 18px; line-height: 1.45; color: rgba(200, 235, 240, .8); word-break: keep-all; }
-#a11y-row3 { margin-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+#a11y-row3 { margin-top: 34px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 #a11y-label3 { font-family: var(--font-title); font-weight: 600; font-size: 22px; color: #eefcff; }
 #a11y-sw3 { flex: none; display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--font-title); font-weight: 600; font-size: 18px; color: #d8f7fa; }
 #a11y-track3 { position: relative; width: 60px; height: 32px; box-sizing: border-box; border-radius: 16px; border: 2px solid #5fd4e0; background: rgb(10, 25, 45); }
@@ -728,10 +730,10 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 #a11y-sw3[aria-checked="true"] #a11y-track3 { background: rgb(18, 60, 80); }
 #a11y-sw3[aria-checked="true"] #a11y-track3::after { left: 31px; background: #8ff3fa; }
 #a11y-sw3:focus-visible #a11y-track3 { box-shadow: 0 0 0 3px rgba(143, 243, 250, .5); }
-#a11y-desc3 { margin: 8px 0 0; font-size: 18px; line-height: 1.45; color: rgba(200, 235, 240, .8); word-break: keep-all; }
-.a11y-sub { margin: 12px 0 0 6px; padding-left: 16px; border-left: 2px solid rgba(95, 212, 224, .4); }   /* 소리 끄기 하위: 배경음 끄기 / 효과음 끄기 */
-.a11y-subrow { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }   /* 스위치는 위쪽 스위치들과 같은 오른쪽 줄에 맞추고, 글자는 그 바로 왼쪽에 붙음 */
-.a11y-subrow + .a11y-subrow { margin-top: 14px; }
+#a11y-desc3 { margin: 12px 0 0; font-size: 18px; line-height: 1.45; color: rgba(200, 235, 240, .8); word-break: keep-all; }
+.a11y-sub { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 14px 0 0; padding: 12px; border-radius: 12px; border: 1px solid rgba(95, 212, 224, .4); background: rgba(95, 212, 224, .08); }   /* 소리 끄기 하위: 배경음 끄기 / 효과음 끄기 */
+.a11y-subrow { display: flex; align-items: center; justify-content: flex-start; gap: 12px; }   /* 스위치는 위쪽 스위치들과 같은 오른쪽 줄에 맞추고, 글자는 그 바로 왼쪽에 붙음 */
+.a11y-subrow + .a11y-subrow { margin-top: 0; padding-left: 14px; border-left: 1px solid rgba(95, 212, 224, .5); }   /* 효과음 끄기 왼쪽 구분선 */
 .a11y-sublabel { white-space: nowrap; font-family: var(--font-title); font-weight: 600; font-size: 18px; color: #eefcff; }
 .a11y-subsw { flex: none; display: flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--font-title); font-weight: 600; font-size: 15px; color: #d8f7fa; }
 .a11y-subtrack { position: relative; width: 48px; height: 26px; box-sizing: border-box; border-radius: 13px; border: 2px solid #5fd4e0; background: rgb(10, 25, 45); }
@@ -742,7 +744,7 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 /* 흔들림·움직임 줄이기 (html.calm-mode): 화면 흔들림은 자바스크립트가 건너뛰고, 아래는 CSS 움직임을 멈춤 */
 html.calm-mode .board-piece { animation: none; }
 html.calm-mode #board-sub.board-open .board-glowtxt { animation: none; }
-#a11y-note { margin: 14px 0 0; font-size: 16px; line-height: 1.4; color: rgba(200, 235, 240, .6); word-break: keep-all; }
+#a11y-note { margin: 26px 0 0; font-size: 16px; line-height: 1.4; color: rgba(200, 235, 240, .6); word-break: keep-all; }
 #a11y-btns { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
 #a11y-btns button { height: 48px; padding: 0 22px; cursor: pointer; font-family: var(--font-title); font-weight: 600; font-size: 20px; color: #fafafa; background: rgb(10, 25, 45); border: 2px solid #5fd4e0; border-radius: 14px; }
 #a11y-btns button:hover { background: rgb(18, 42, 72); }
@@ -946,9 +948,9 @@ html.calm-mode #board-scene .board-card.board-hl.board-hl-pulse { animation: non
   <div id="a11y-row2"><span id="a11y-label2">흔들림·움직임 줄이기</span><button id="a11y-sw2" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label2"><span id="a11y-track2"></span><span id="a11y-state2">꺼짐</span></button></div>
   <p id="a11y-desc2">어지러움을 유발할 수 있는 화면 동작을 멈춰요.</p>
   <div id="a11y-row3"><span id="a11y-label3">소리 끄기 (음소거)</span><button id="a11y-sw3" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label3"><span id="a11y-track3"></span><span id="a11y-state3">꺼짐</span></button></div>
-  <p id="a11y-desc3">소리를 모두 꺼요. 화면과 글자는 그대로예요.</p>
   <div class="a11y-sub"><div class="a11y-subrow"><span id="a11y-label4" class="a11y-sublabel">배경음 끄기</span><button id="a11y-sw4" class="a11y-subsw" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label4"><span class="a11y-subtrack"></span><span id="a11y-state4">꺼짐</span></button></div>
   <div class="a11y-subrow"><span id="a11y-label5" class="a11y-sublabel">효과음 끄기</span><button id="a11y-sw5" class="a11y-subsw" type="button" role="switch" aria-checked="false" aria-labelledby="a11y-label5"><span class="a11y-subtrack"></span><span id="a11y-state5">꺼짐</span></button></div></div>
+  <p id="a11y-desc3">소리를 모두 꺼요. 화면과 글자는 그대로예요.</p>
   <p id="a11y-note">이 설정들은 이 기기 브라우저에만 저장되며 서버로 전송되지 않습니다.</p>
   <div id="a11y-btns"><button id="a11y-reset" type="button">설정 초기화</button><button id="a11y-close" type="button">닫기</button></div>
 </div></div>
@@ -1997,7 +1999,8 @@ var Board = (function () {
     handBottomMargin: 40,     // 손패 카드 아래 끝 ~ 무대 아래 끝 간격
     zoomScale: 1.9,
     scrollArrowSize: 36,      // 양쪽 끝 ◀ ▶ 글자 크기(px). 눌리는 영역은 100x100 고정
-    magnetRadius: 180,        // 칸 중심에서 이 거리 안이면 끌려 들어가고, 놓으면 항상 붙음
+    magnetRadius: 240,        // 칸 중심에서 이 거리 안이면 끌려 들어가고, 놓으면 항상 붙음
+    readyRadius: 180,         // 칸이 밝게 켜지는 거리 (번짐 그림자라 넓히면 아이폰에서 다시 그리는 일이 늘어 따로 둠)
     edgeZone: 140,            // 자동 스크롤 감지 폭
     autoScrollMax: 900,       // 자동 스크롤 최대 속도(px/초)
     dragThreshold: 6,         // 이 픽셀 이상 움직여야 '끌기'
@@ -2390,13 +2393,33 @@ var Board = (function () {
     }
     return { i: best, d: bd };
   }
+  // 가루: 끌림 반경 안에서 칸 중심으로 빨려 들어가는 작은 점들. 위치·투명도(transform/opacity)만 바꾸고 그림자·블러는 쓰지 않음. 움직임 줄이기가 켜지면 없음
+  var fxEl = null, fxDots = [], fxT = 0, FX_N = IS_IPHONE ? 5 : 8;
+  function fxUpdate(si, pull) {
+    if (si < 0 || document.documentElement.classList.contains('calm-mode')) { if (fxEl) fxEl.style.display = 'none'; return; }
+    if (!fxEl) {
+      fxEl = document.createElement('div'); fxEl.className = 'board-fx'; cardsEl.appendChild(fxEl);
+      for (var k = 0; k < FX_N; k++) { var e = document.createElement('i'); fxEl.appendChild(e); fxDots.push({ e: e, u: k / FX_N, a: Math.random() * 6.283, r: 0.6 + Math.random() * 0.4 }); }
+    }
+    var now = performance.now(), dt = Math.min(0.05, (now - fxT) / 1000); fxT = now;
+    fxEl.style.display = '';
+    var cx = slotCX(si), cy = slotCY();
+    fxDots.forEach(function (d) {
+      d.u += dt * 1.1;
+      if (d.u >= 1) { d.u -= 1; d.a = Math.random() * 6.283; d.r = 0.6 + Math.random() * 0.4; }
+      var k = (1 - d.u), rr = L.magnetRadius * d.r * k * k;   // 처음엔 느리게 떨어져 있다가 중심으로 갈수록 빨라짐
+      d.e.style.transform = 'translate3d(' + (cx + Math.cos(d.a) * rr).toFixed(1) + 'px,' + (cy + Math.sin(d.a) * rr * 1.3).toFixed(1) + 'px,0)';
+      d.e.style.opacity = (Math.sin(d.u * Math.PI) * 0.9 * Math.min(1, pull * 2 + 0.25)).toFixed(2);
+    });
+  }
+  function fxHide() { if (fxEl) fxEl.style.display = 'none'; }
   // 끄는 중 카드 표현: 반경 안이면 칸 중심 쪽으로 끌려가고 기울기/떠오름이 줄어듦
   function applyDrag() {
     var c = drag.card; if (!c) return;
     var hcx = drag.px - drag.gx + L.cardW / 2, hcy = drag.py - drag.gy + L.cardH / 2;
     var n = nearestSlot(hcx, hcy), pull = 0, cx = hcx, cy = hcy, w = L.cardW, h = L.cardH;
     if (n.i >= 0) {
-      var t = 1 - n.d / L.magnetRadius; pull = t * t * (3 - 2 * t);
+      var t = 1 - n.d / L.magnetRadius; pull = Math.sin(t * Math.PI / 2);   // 멀리서부터 눈에 띄게 당겨지고 가까울수록 1에 가까워짐
       cx += (slotCX(n.i) - cx) * pull; cy += (slotCY() - cy) * pull;
       w += (L.slotW - w) * pull * 0.5; h += (L.slotH - h) * pull * 0.5;
     }
@@ -2404,7 +2427,9 @@ var Board = (function () {
     var bs = drag.base || { x: c.x, y: c.y, w: c.w, h: c.h };   // 끄는 동안 위치·크기는 배치를 바꾸지 않고 transform(이동·확대·기울기)만 바꿈
     c.el.style.transform = 'translate3d(' + (cx - (bs.x + bs.w / 2)).toFixed(2) + 'px,' + (cy - (bs.y + bs.h / 2) - 8 * q).toFixed(2) + 'px,0) rotate(' + (drag.tilt * q).toFixed(2) + 'deg) scale(' + ((w / bs.w) * (1 + 0.04 * q)).toFixed(4) + ',' + ((h / bs.h) * (1 + 0.04 * q)).toFixed(4) + ')';
     drag.box = { x: cx - w / 2, y: cy - h / 2, w: w, h: h };
-    if (n.i !== drag.near) { drag.near = n.i; slots.forEach(function (s, i) { s.classList.toggle('board-ready', i === n.i); }); }
+    var ri = n.i >= 0 && n.d < L.readyRadius ? n.i : -1;
+    if (ri !== drag.near) { drag.near = ri; slots.forEach(function (s, i) { s.classList.toggle('board-ready', i === ri); }); }
+    fxUpdate(n.i, pull);
   }
 
   // ===== 사료 설명 패널: 카드 데이터를 받아 채움 (지금은 고정 카드 1번에만 연결) =====
@@ -3281,7 +3306,7 @@ var Board = (function () {
     }
     try { stage.releasePointerCapture(e.pointerId); } catch (_) {}
     slots.forEach(function (s) { s.classList.remove('board-ready'); });
-    drag.near = -1;
+    drag.near = -1; fxHide();
     if (!c) { if (tap && !cancel && !moved) openDetail(tap); return; }
     if (was && drag.box) setBox(c, drag.box.x, drag.box.y, drag.box.w, drag.box.h);   // 놓은 순간의 보이는 자리를 실제 배치로 확정한 뒤 transform 을 걷음 (튀지 않게)
     drag.base = null; drag.box = null;
@@ -3471,7 +3496,7 @@ var Board = (function () {
     closeWarn(); closeAudit(); resetSolved();
     closeDetail(true);
     unzoom();
-    drag.pid = null; drag.active = false; drag.card = null; drag.bgScroll = false; drag.near = -1;
+    drag.pid = null; drag.active = false; drag.card = null; drag.bgScroll = false; drag.near = -1; fxHide();
     cards.forEach(function (c) { if (c._fa) { c._fa.cancel(); c._fa = null; } clearTimeout(c._rt); c.returning = false; c.el.classList.remove('board-drag', 'board-anim', 'board-snap', 'board-return'); c.el.style.transform = ''; });
     slots.forEach(function (s) { s.classList.remove('board-ready', 'board-flash'); });
     handCards.forEach(function (c) { c.where = 'hand'; });
