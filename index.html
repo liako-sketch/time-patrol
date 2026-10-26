@@ -726,7 +726,7 @@ mark.board-mk-ok { color: inherit; background: var(--ok-glow); border-radius: 4p
 .a11y-sub { margin: 12px 0 0 6px; padding-left: 16px; border-left: 2px solid rgba(95, 212, 224, .4); }   /* 소리 끄기 하위: 배경음 끄기 / 효과음 끄기 */
 .a11y-subrow { display: flex; align-items: center; justify-content: flex-start; gap: 14px; }   /* 글자 바로 옆에 스위치 */
 .a11y-subrow + .a11y-subrow { margin-top: 14px; }
-.a11y-sublabel { font-family: var(--font-title); font-weight: 600; font-size: 18px; color: #eefcff; }
+.a11y-sublabel { min-width: 6.4em; text-align: right; white-space: nowrap; font-family: var(--font-title); font-weight: 600; font-size: 18px; color: #eefcff; }   /* 글자를 스위치 쪽으로 붙이고 오른쪽 끝을 맞춰서 두 스위치의 세로 위치가 같게 */
 .a11y-subsw { flex: none; display: flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--font-title); font-weight: 600; font-size: 15px; color: #d8f7fa; }
 .a11y-subtrack { position: relative; width: 48px; height: 26px; box-sizing: border-box; border-radius: 13px; border: 2px solid #5fd4e0; background: rgb(10, 25, 45); }
 .a11y-subtrack::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #8aa0aa; transition: left .15s ease, background .15s ease; }
